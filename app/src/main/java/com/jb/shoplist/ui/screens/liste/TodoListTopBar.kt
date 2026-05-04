@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +25,8 @@ fun TodoListTopBar(
     titre: String,
     afficherFaites: Boolean,
     onToggleAfficherFaites: () -> Unit,
+    undoCochageActif: Boolean,
+    onAnnulerCochage: () -> Unit,
     onOuvrirCategories: () -> Unit,
     onOuvrirPartage: () -> Unit,
     onOuvrirImport: () -> Unit,
@@ -85,6 +88,19 @@ fun TodoListTopBar(
                     Icon(Icons.Default.Close, contentDescription = "Fermer la recherche")
                 }
             } else {
+                IconButton(
+                    onClick = onAnnulerCochage,
+                    enabled = undoCochageActif
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Undo,
+                        contentDescription = if (undoCochageActif) {
+                            "Annuler le dernier cochage"
+                        } else {
+                            "Aucun cochage à annuler"
+                        }
+                    )
+                }
                 IconButton(onClick = onToggleSearchMode) {
                     Icon(Icons.Default.Search, contentDescription = "Rechercher")
                 }

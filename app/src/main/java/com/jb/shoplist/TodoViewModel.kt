@@ -9,10 +9,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val UNDO_STACK_MAX_SIZE = 10
 
 sealed class ActionAnnulable {
     abstract val message: String
@@ -37,6 +41,18 @@ sealed class ActionAnnulable {
     }
 }
 
+/**
+ * Représente une action de cochage / décochage potentiellement annulable.
+ *
+ * @property tacheId identifiant de la tâche concernée
+ * @property etatPrecedent valeur de [TacheEntity.faite] avant l'action
+ *                        (donc l'état à restaurer en cas d'annulation)
+ */
+data class ActionCochage(
+    val tacheId: Int,
+    val etatPrecedent: Boolean
+)
+
 data class TodoUiState(
     val taches: List<TacheEntity> = emptyList(),
     val categories: List<CategorieEntity> = emptyList(),
@@ -60,6 +76,9 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     private val _actionAnnulable = MutableStateFlow<ActionAnnulable?>(null)
 
     val actionAnnulable: StateFlow<ActionAnnulable?> = _actionAnnulable
+
+    private val _pileCochages = MutableStateFlow<List<ActionCochage>>(emptyList())
+    val pileCochages: StateFlow<List<ActionCochage>> = _pileCochages.asStateFlow()
 
     val uiState: StateFlow<TodoUiState> = combine(
         tacheDao.observerToutes(),
@@ -100,6 +119,10 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun viderPileCochages() {
+        _pileCochages.value = emptyList()
+    }
+
     fun setTermeRecherche(terme: String) {
         _termeRecherche.value = terme
     }
@@ -119,7 +142,41 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun basculerFait(tache: TacheEntity) {
         viewModelScope.launch {
+            // 1. Empiler l'état précédent AVANT de modifier
+            empilerActionCochage(ActionCochage(tache.id, tache.faite))
+
+            // 2. Modifier la tâche (logique existante)
             tacheDao.mettreAJour(tache.copy(faite = !tache.faite))
+        }
+    }
+
+    private fun empilerActionCochage(action: ActionCochage) {
+        _pileCochages.update { pile ->
+            // On limite à UNDO_STACK_MAX_SIZE en supprimant les plus anciennes (en tête)
+            val nouvelle = (pile + action)
+            if (nouvelle.size > UNDO_STACK_MAX_SIZE) {
+                nouvelle.takeLast(UNDO_STACK_MAX_SIZE)
+            } else {
+                nouvelle
+            }
+        }
+    }
+
+    fun annulerDernierCochage() {
+        viewModelScope.launch {
+            val pile = _pileCochages.value
+            if (pile.isEmpty()) return@launch
+
+            val derniereAction = pile.last()
+
+            // Récupérer la tâche actuelle (peut avoir été modifiée entre-temps)
+            val tacheActuelle = uiState.value.taches.firstOrNull { it.id == derniereAction.tacheId }
+            if (tacheActuelle != null) {
+                tacheDao.mettreAJour(tacheActuelle.copy(faite = derniereAction.etatPrecedent))
+            }
+
+            // Retirer cette action de la pile, qu'elle ait été appliquée ou non
+            _pileCochages.update { it.dropLast(1) }
         }
     }
 
@@ -131,6 +188,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun supprimerTache(tache: TacheEntity) {
         viewModelScope.launch {
+            viderPileCochages()
             tacheDao.supprimer(tache)
             _actionAnnulable.value = ActionAnnulable.SuppressionTache(tache)
         }
@@ -174,6 +232,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun supprimerCategorie(categorie: CategorieEntity) {
         viewModelScope.launch {
+            viderPileCochages()
             val tachesDeLaCat = uiState.value.taches.filter { it.categorie == categorie.nom }
             database.withTransaction {
                 // 1. Supprimer toutes les tâches de la catégorie
@@ -229,6 +288,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     fun importerDepuisCsv(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
+                viderPileCochages()
                 val context = getApplication<Application>().applicationContext
                 val contentResolver = context.contentResolver
                 val inputStream = contentResolver.openInputStream(uri)
@@ -326,6 +386,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toutCocher() {
         viewModelScope.launch {
+            viderPileCochages()
             val tachesAChanger = uiState.value.taches.filter { !it.faite }
             if (tachesAChanger.isNotEmpty()) {
                 val nouvellesTaches = uiState.value.taches.map { it.copy(faite = true) }

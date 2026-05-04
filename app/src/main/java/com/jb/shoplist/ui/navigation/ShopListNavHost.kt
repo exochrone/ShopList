@@ -7,6 +7,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.jb.shoplist.ActionCochage
 import com.jb.shoplist.TodoUiState
 import com.jb.shoplist.TodoViewModel
 import com.jb.shoplist.ui.screens.categories.CategoriesScreen
@@ -18,7 +19,8 @@ fun ShopListNavHost(
     navController: NavHostController,
     uiState: TodoUiState,
     viewModel: TodoViewModel,
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    pileCochages: List<ActionCochage>
 ) {
     NavHost(navController = navController, startDestination = Routes.LISTE) {
         composable(Routes.LISTE) {
@@ -27,6 +29,8 @@ fun ShopListNavHost(
                 uiState = uiState,
                 snackbarHostState = snackbarHostState,
                 actionAnnulable = actionAnnulable,
+                pileCochagesNonVide = pileCochages.isNotEmpty(),
+                onAnnulerDernierCochage = viewModel::annulerDernierCochage,
                 onAjouterTache = viewModel::ajouterTache,
                 onBasculerFait = viewModel::basculerFait,
                 onModifierTitreTache = viewModel::modifierTitreTache,

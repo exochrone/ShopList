@@ -38,6 +38,7 @@ fun TodoApp() {
     val viewModel: TodoViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val actionAnnulable by viewModel.actionAnnulable.collectAsStateWithLifecycle()
+    val pileCochages by viewModel.pileCochages.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -70,7 +71,8 @@ fun TodoApp() {
             navController = navController,
             uiState = uiState,
             viewModel = viewModel,
-            snackbarHostState = snackbarHostState
+            snackbarHostState = snackbarHostState,
+            pileCochages = pileCochages
         )
     }
 }
