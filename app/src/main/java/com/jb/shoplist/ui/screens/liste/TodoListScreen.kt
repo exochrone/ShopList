@@ -1,0 +1,369 @@
+package com.jb.shoplist.ui.screens.liste
+
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.ui.unit.Dp
+import com.jb.shoplist.ActionAnnulable
+import com.jb.shoplist.CategorieEntity
+import com.jb.shoplist.TacheEntity
+import com.jb.shoplist.TodoUiState
+import com.jb.shoplist.ui.components.SaisieDialog
+import com.jb.shoplist.ui.components.TacheItem
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
+import java.text.Normalizer
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TodoListScreen(
+    uiState: TodoUiState,
+    actionAnnulable: ActionAnnulable?,
+    onAjouterTache: (String, String) -> Unit,
+    onBasculerFait: (TacheEntity) -> Unit,
+    onModifierTitreTache: (TacheEntity, String) -> Unit,
+    onSupprimerTache: (TacheEntity) -> Unit,
+    onReordonnerTaches: (List<TacheEntity>) -> Unit,
+    onAjouterCategorie: (String) -> Unit,
+    onModifierTitreListe: (String) -> Unit,
+    onToggleCategorieRepliee: (CategorieEntity) -> Unit,
+    onOuvrirCategories: () -> Unit,
+    onOuvrirPartage: () -> Unit,
+    onImporterCsv: (android.net.Uri) -> Unit,
+    onToutCocher: () -> Unit,
+    onBasculerAfficherFaites: (Boolean) -> Unit,
+    onSetTermeRecherche: (String) -> Unit,
+    onAnnulerAction: () -> Unit,
+    onConsommerAction: () -> Unit
+) {
+    var modeRecherche by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(actionAnnulable) {
+        actionAnnulable?.let { action ->
+            val result = snackbarHostState.showSnackbar(
+                message = action.message,
+                actionLabel = "Annuler",
+                duration = SnackbarDuration.Short
+            )
+            when (result) {
+                SnackbarResult.ActionPerformed -> onAnnulerAction()
+                SnackbarResult.Dismissed -> onConsommerAction()
+            }
+        }
+    }
+
+    BackHandler(enabled = modeRecherche) {
+        modeRecherche = false
+        onSetTermeRecherche("")
+    }
+    var afficherDialogCategorie by remember { mutableStateOf(false) }
+
+    var afficherDialogRenommer by remember { mutableStateOf(false) }
+
+    var afficherDialogImport by remember { mutableStateOf(false) }
+
+    var categorieCibleAjout by remember { mutableStateOf<String?>(null) }
+
+    var tacheEnEdition by remember { mutableStateOf<TacheEntity?>(null) }
+
+    val launcherImport = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: android.net.Uri? ->
+        uri?.let { onImporterCsv(it) }
+    }
+
+    val lignes: List<LigneAffichee> = remember(uiState.categories, uiState.taches, uiState.afficherFaites, uiState.termeRecherche) {
+        val recherche = uiState.termeRecherche.trim().sansAccents().lowercase()
+        buildList {
+            uiState.categories.forEach { cat ->
+                val tachesDeLaCat = uiState.taches.filter { it.categorie == cat.nom }
+                val nombreNonCoches = tachesDeLaCat.count { !it.faite }
+
+                val tachesFiltreesParFait = if (uiState.afficherFaites) {
+                    tachesDeLaCat
+                } else {
+                    tachesDeLaCat.filter { !it.faite }
+                }
+
+                val tachesFinales = if (recherche.isEmpty()) {
+                    tachesFiltreesParFait
+                } else {
+                    tachesFiltreesParFait.filter { tache ->
+                        tache.titre.sansAccents().lowercase().contains(recherche) ||
+                                cat.nom.sansAccents().lowercase().contains(recherche)
+                    }
+                }
+
+                if (tachesFinales.isNotEmpty() || (recherche.isEmpty() && uiState.afficherFaites)) {
+                    add(LigneAffichee.Header(cat, nombreNonCoches))
+                    if (!cat.repliee) {
+                        tachesFinales.forEach { tache ->
+                            add(LigneAffichee.ItemTache(tache, cat.couleur))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    val lazyListState = rememberLazyListState()
+    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        val itemDeplace = lignes[from.index]
+        val cible = lignes[to.index]
+
+        if (itemDeplace !is LigneAffichee.ItemTache) return@rememberReorderableLazyListState
+
+        val tacheDeplacee = itemDeplace.tache
+
+        val nouvelleCategorieName = when (cible) {
+            is LigneAffichee.Header -> cible.categorie.nom
+            is LigneAffichee.ItemTache -> cible.tache.categorie
+        }
+
+        val sansTache = uiState.taches.filter { it.id != tacheDeplacee.id }
+        val tacheMiseAJour = tacheDeplacee.copy(categorie = nouvelleCategorieName)
+
+        val indexCible = when (cible) {
+            is LigneAffichee.Header -> {
+                val premiereTacheCat = sansTache.indexOfFirst { it.categorie == nouvelleCategorieName }
+                if (premiereTacheCat == -1) sansTache.size else premiereTacheCat
+            }
+            is LigneAffichee.ItemTache -> {
+                val indexDansSansTache = sansTache.indexOfFirst { it.id == cible.tache.id }
+                if (from.index < to.index) indexDansSansTache + 1 else indexDansSansTache
+            }
+        }
+
+        val nouvelleListe = sansTache.toMutableList().apply {
+            add(indexCible.coerceIn(0, size), tacheMiseAJour)
+        }
+        onReordonnerTaches(nouvelleListe)
+    }
+
+    Scaffold(
+        topBar = {
+            TodoListTopBar(
+                titre = uiState.titreListe,
+                afficherFaites = uiState.afficherFaites,
+                onToggleAfficherFaites = { onBasculerAfficherFaites(!uiState.afficherFaites) },
+                onAjouterCategorie = {
+                    afficherDialogCategorie = true
+                },
+                onOuvrirCategories = onOuvrirCategories,
+                onOuvrirPartage = onOuvrirPartage,
+                onOuvrirImport = { afficherDialogImport = true },
+                onRenommerListe = {
+                    afficherDialogRenommer = true
+                },
+                onToutCocher = {
+                    onBasculerAfficherFaites(true)
+                    onToutCocher()
+                },
+                isSearchMode = modeRecherche,
+                onToggleSearchMode = {
+                    modeRecherche = !modeRecherche
+                    if (!modeRecherche) onSetTermeRecherche("")
+                },
+                searchTerm = uiState.termeRecherche,
+                onSearchTermChange = onSetTermeRecherche
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { innerPadding ->
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            items(
+                count = lignes.size,
+                key = { lignes[it].cleUnique }
+            ) { index ->
+                val ligne = lignes[index]
+                ReorderableItem(reorderableState, key = ligne.cleUnique) { isDragging ->
+                    when (ligne) {
+                        is LigneAffichee.Header -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp)
+                                    .clickable { onToggleCategorieRepliee(ligne.categorie) }
+                            ) {
+                                Icon(
+                                    imageVector = if (ligne.categorie.repliee) Icons.Default.ChevronRight else Icons.Default.ExpandMore,
+                                    contentDescription = if (ligne.categorie.repliee) "Déplier" else "Replier",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = ligne.categorie.nom,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 18.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = Color(ligne.categorie.couleur)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "(${ligne.nombreNonCoches})",
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                                    IconButton(
+                                        onClick = {
+                                            categorieCibleAjout = ligne.categorie.nom
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Add,
+                                            contentDescription = "Ajouter une tâche dans ${ligne.categorie.nom}",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        is LigneAffichee.ItemTache -> {
+                            val dragModifier = if (modeRecherche) Modifier else Modifier.longPressDraggableHandle()
+                            TacheItem(
+                                tache = ligne.tache,
+                                onCheckedChange = { onBasculerFait(ligne.tache) },
+                                onClickTache = {
+                                    tacheEnEdition = ligne.tache
+                                },
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .then(dragModifier),
+                                isDragging = isDragging,
+                                couleurCase = Color(ligne.couleur)
+                            )
+                        }
+                    }
+                }
+            }
+            item {
+                HorizontalDivider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                )
+            }
+        }
+    }
+
+    if (afficherDialogImport) {
+        AlertDialog(
+            onDismissRequest = { afficherDialogImport = false },
+            title = { Text("Import CSV") },
+            text = { Text("Import d'un fichier CSV contenant les tâches à ajouter dans l'application avec leur catégorie. Utiliser un fichier (sans entête, UTF-8) avec la catégorie dans la 1ère colonne et la tâche dans la seconde. Les deux données sont obligatoires.\n\nValider pour choisir le fichier.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    afficherDialogImport = false
+                    launcherImport.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
+                }) { Text("Valider") }
+            },
+            dismissButton = {
+                TextButton(onClick = { afficherDialogImport = false }) { Text("Annuler") }
+            }
+        )
+    }
+
+    if (afficherDialogCategorie) {
+        SaisieDialog(
+            titre = "Nouvelle catégorie",
+            placeholder = "Nom de la catégorie",
+            libelleValider = "Ajouter",
+            onValider = { nom ->
+                if (uiState.categories.none { it.nom == nom }) {
+                    onAjouterCategorie(nom)
+                }
+                afficherDialogCategorie = false
+            },
+            onAnnuler = { afficherDialogCategorie = false }
+        )
+    }
+
+    if (afficherDialogRenommer) {
+        SaisieDialog(
+            titre = "Renommer la liste",
+            valeurInitiale = uiState.titreListe,
+            placeholder = "Nouveau titre",
+            onValider = { titre ->
+                onModifierTitreListe(titre)
+                afficherDialogRenommer = false
+            },
+            onAnnuler = { afficherDialogRenommer = false }
+        )
+    }
+
+    categorieCibleAjout?.let { categorie ->
+        SaisieDialog(
+            titre = "Nouvelle tâche dans « $categorie »",
+            placeholder = "Nom de la tâche",
+            libelleValider = "Ajouter",
+            onValider = { titre ->
+                onAjouterTache(titre, categorie)
+                categorieCibleAjout = null
+            },
+            onAnnuler = { categorieCibleAjout = null }
+        )
+    }
+
+    tacheEnEdition?.let { tache ->
+        SaisieDialog(
+            titre = "Modifier la tâche",
+            valeurInitiale = tache.titre,
+            placeholder = "Nom de la tâche",
+            onValider = { titre ->
+                onModifierTitreTache(tache, titre)
+                tacheEnEdition = null
+            },
+            onAnnuler = { tacheEnEdition = null },
+            actionsSupplementaires = {
+                TextButton(
+                    onClick = {
+                        onSupprimerTache(tache)
+                        tacheEnEdition = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                ) { Text("Supprimer") }
+            }
+        )
+    }
+}
+
+private fun String.sansAccents(): String {
+    val temp = Normalizer.normalize(this, Normalizer.Form.NFD)
+    return "\\p{InCombiningDiacriticalMarks}+".toRegex().replace(temp, "")
+}
