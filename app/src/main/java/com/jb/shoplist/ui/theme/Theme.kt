@@ -15,11 +15,13 @@ import androidx.core.view.WindowCompat
 
 @Immutable
 data class ShopListCustomColors(
-    val tacheNonFaite: Color = Color.Unspecified,
-    val tacheFaite: Color = Color.Unspecified
+    val tacheNonFaite: Color,
+    val tacheFaite: Color
 )
 
-val LocalShopListColors = staticCompositionLocalOf { ShopListCustomColors() }
+val LocalShopListColors = staticCompositionLocalOf<ShopListCustomColors> { 
+    error("ShopListCustomColors non fourni") 
+}
 
 object ShopListTheme {
     val customColors: ShopListCustomColors

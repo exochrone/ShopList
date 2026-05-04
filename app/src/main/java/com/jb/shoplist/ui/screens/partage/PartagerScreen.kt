@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,6 +64,7 @@ fun PartagerScreen(
 
     var texteModifie by remember { mutableStateOf<String?>(null) }
     val texteAafficher = texteModifie ?: texteCalcule
+    val estModifieManuel = texteModifie != null
 
     val clavierVisible = WindowInsets.ime.asPaddingValues().calculateBottomPadding() > 0.dp
 
@@ -74,6 +76,13 @@ fun PartagerScreen(
                     IconButton(onClick = onRetour) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
                     }
+                },
+                actions = {
+                    if (estModifieManuel) {
+                        IconButton(onClick = { texteModifie = null }) {
+                            Icon(Icons.Default.Undo, contentDescription = "Rétablir l'automatique")
+                        }
+                    }
                 }
             )
         }
@@ -84,19 +93,7 @@ fun PartagerScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            OutlinedTextField(
-                value = texteAafficher,
-                onValueChange = { texteModifie = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .imePadding(),
-                label = { Text("Contenu à partager") }
-            )
-
             if (!clavierVisible) {
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -104,12 +101,14 @@ fun PartagerScreen(
                     ) {
                         Checkbox(
                             checked = masquerCategories,
-                            onCheckedChange = {
-                                masquerCategories = it
-                                texteModifie = null
-                            }
+                            onCheckedChange = { masquerCategories = it },
+                            enabled = !estModifieManuel
                         )
-                        Text("Masquer les catégories", fontSize = 14.sp)
+                        Text(
+                            text = "Masquer les catégories",
+                            fontSize = 14.sp,
+                            color = if (estModifieManuel) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurface
+                        )
                     }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -117,15 +116,31 @@ fun PartagerScreen(
                     ) {
                         Checkbox(
                             checked = afficherCoches,
-                            onCheckedChange = {
-                                afficherCoches = it
-                                texteModifie = null
-                            }
+                            onCheckedChange = { afficherCoches = it },
+                            enabled = !estModifieManuel
                         )
-                        Text("Afficher les éléments cochés", fontSize = 14.sp)
+                        Text(
+                            text = "Afficher les éléments cochés",
+                            fontSize = 14.sp,
+                            color = if (estModifieManuel) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            OutlinedTextField(
+                value = texteAafficher,
+                onValueChange = { texteModifie = it },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .imePadding(),
+                label = { Text(if (estModifieManuel) "Contenu (modifié manuellement)" else "Contenu à partager") }
+            )
+
+            if (!clavierVisible) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(

@@ -32,6 +32,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 fun CategoriesScreen(
     categories: List<CategorieEntity>,
     taches: List<TacheEntity>,
+    snackbarHostState: SnackbarHostState,
     actionAnnulable: ActionAnnulable?,
     onAjouterCategorie: (String) -> Unit,
     onSupprimerCategorie: (CategorieEntity) -> Unit,
@@ -40,25 +41,8 @@ fun CategoriesScreen(
     onModifierCouleur: (CategorieEntity, Long) -> Unit,
     onTrierTachesParAlpha: (String) -> Unit,
     onRetour: () -> Unit,
-    onAnnulerAction: () -> Unit,
-    onConsommerAction: () -> Unit
 ) {
     var afficherDialogAjout by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(actionAnnulable) {
-        actionAnnulable?.let { action ->
-            val result = snackbarHostState.showSnackbar(
-                message = action.message,
-                actionLabel = "Annuler",
-                duration = SnackbarDuration.Short
-            )
-            when (result) {
-                SnackbarResult.ActionPerformed -> onAnnulerAction()
-                SnackbarResult.Dismissed -> onConsommerAction()
-            }
-        }
-    }
 
     var categorieEnEdition by remember { mutableStateOf<CategorieEntity?>(null) }
 

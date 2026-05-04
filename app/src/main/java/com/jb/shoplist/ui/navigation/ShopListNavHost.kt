@@ -1,5 +1,6 @@
 package com.jb.shoplist.ui.navigation
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -16,13 +17,15 @@ import com.jb.shoplist.ui.screens.partage.PartagerScreen
 fun ShopListNavHost(
     navController: NavHostController,
     uiState: TodoUiState,
-    viewModel: TodoViewModel
+    viewModel: TodoViewModel,
+    snackbarHostState: SnackbarHostState
 ) {
     NavHost(navController = navController, startDestination = Routes.LISTE) {
         composable(Routes.LISTE) {
             val actionAnnulable by viewModel.actionAnnulable.collectAsStateWithLifecycle()
             TodoListScreen(
                 uiState = uiState,
+                snackbarHostState = snackbarHostState,
                 actionAnnulable = actionAnnulable,
                 onAjouterTache = viewModel::ajouterTache,
                 onBasculerFait = viewModel::basculerFait,
@@ -38,8 +41,6 @@ fun ShopListNavHost(
                 onToutCocher = viewModel::toutCocher,
                 onBasculerAfficherFaites = viewModel::setAfficherFaites,
                 onSetTermeRecherche = viewModel::setTermeRecherche,
-                onAnnulerAction = viewModel::annulerDerniereAction,
-                onConsommerAction = viewModel::consommerAction
             )
         }
         composable(Routes.CATEGORIES) {
@@ -47,6 +48,7 @@ fun ShopListNavHost(
             CategoriesScreen(
                 categories = uiState.categories,
                 taches = uiState.taches,
+                snackbarHostState = snackbarHostState,
                 actionAnnulable = actionAnnulable,
                 onAjouterCategorie = viewModel::ajouterCategorie,
                 onSupprimerCategorie = viewModel::supprimerCategorie,
@@ -55,8 +57,6 @@ fun ShopListNavHost(
                 onModifierCouleur = viewModel::modifierCouleurCategorie,
                 onTrierTachesParAlpha = viewModel::trierTachesParAlpha,
                 onRetour = { navController.popBackStack() },
-                onAnnulerAction = viewModel::annulerDerniereAction,
-                onConsommerAction = viewModel::consommerAction
             )
         }
         composable(Routes.PARTAGER) {

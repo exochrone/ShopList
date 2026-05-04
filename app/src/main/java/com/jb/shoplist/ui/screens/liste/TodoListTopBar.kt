@@ -24,7 +24,6 @@ fun TodoListTopBar(
     titre: String,
     afficherFaites: Boolean,
     onToggleAfficherFaites: () -> Unit,
-    onAjouterCategorie: () -> Unit,
     onOuvrirCategories: () -> Unit,
     onOuvrirPartage: () -> Unit,
     onOuvrirImport: () -> Unit,
@@ -103,15 +102,6 @@ fun TodoListTopBar(
                         expanded = afficherMenu,
                         onDismissRequest = { afficherMenu = false }
                     ) {
-                        /*
-                        DropdownMenuItem(
-                            text = { Text("Ajouter une catégorie") },
-                            onClick = {
-                                afficherMenu = false
-                                onAjouterCategorie()
-                            }
-                        )
-                        */
                         DropdownMenuItem(
                             text = { Text("Gérer les catégories") },
                             onClick = {
