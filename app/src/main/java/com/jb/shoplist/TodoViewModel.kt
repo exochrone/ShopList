@@ -60,6 +60,31 @@ data class ActionCochage(
     val etatPrecedent: Boolean
 )
 
+/**
+ * Résultat de la lecture et validation d'un fichier de sauvegarde.
+ * Utilisé pour présenter un résumé avant restauration définitive.
+ */
+data class ContenuSauvegarde(
+    val titreListe: String,
+    val nbCategories: Int,
+    val nbTaches: Int,
+    val dateSauvegarde: String?,
+    val versionApp: String?,
+    // Données complètes pour la restauration
+    val parametres: List<ParametreEntity>,
+    val categories: List<CategorieEntity>,
+    val taches: List<TacheEntity>
+)
+
+/**
+ * États possibles de l'opération de restauration.
+ */
+sealed class EtatRestauration {
+    object Inactif : EtatRestauration()
+    data class FichierLu(val contenu: ContenuSauvegarde) : EtatRestauration()
+    data class Erreur(val message: String) : EtatRestauration()
+}
+
 data class TodoUiState(
     val taches: List<TacheEntity> = emptyList(),
     val categories: List<CategorieEntity> = emptyList(),
@@ -86,6 +111,9 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _pileCochages = MutableStateFlow<List<ActionCochage>>(emptyList())
     val pileCochages: StateFlow<List<ActionCochage>> = _pileCochages.asStateFlow()
+
+    private val _etatRestauration = MutableStateFlow<EtatRestauration>(EtatRestauration.Inactif)
+    val etatRestauration: StateFlow<EtatRestauration> = _etatRestauration.asStateFlow()
 
     val uiState: StateFlow<TodoUiState> = combine(
         tacheDao.observerToutes(),
@@ -411,6 +439,182 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                 e.printStackTrace()
                 _evenements.emit("Erreur lors de la sauvegarde : ${e.message}")
             }
+        }
+    }
+
+    fun lireFichierSauvegarde(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val context = getApplication<Application>().applicationContext
+
+                // 1. Lire le contenu
+                val contenuTexte = context.contentResolver.openInputStream(uri)?.use { stream ->
+                    stream.bufferedReader(Charsets.UTF_8).readText()
+                } ?: throw Exception("Impossible de lire le fichier")
+
+                // 2. Parser et valider
+                val contenu = parserSauvegarde(contenuTexte)
+
+                // 3. Mettre à jour l'état pour déclencher l'affichage du dialog de confirmation
+                _etatRestauration.value = EtatRestauration.FichierLu(contenu)
+
+            } catch (e: SauvegardeInvalideException) {
+                _etatRestauration.value = EtatRestauration.Erreur(e.message ?: "Fichier invalide")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _etatRestauration.value = EtatRestauration.Erreur(
+                    "Erreur de lecture : ${e.message}"
+                )
+            }
+        }
+    }
+
+    private class SauvegardeInvalideException(message: String) : Exception(message)
+
+    private fun parserSauvegarde(json: String): ContenuSauvegarde {
+        val root = try {
+            JSONObject(json)
+        } catch (e: Exception) {
+            throw SauvegardeInvalideException("Le fichier n'est pas un JSON valide")
+        }
+
+        // Vérifier formatVersion
+        val formatVersion = root.optInt("formatVersion", -1)
+        if (formatVersion == -1) {
+            throw SauvegardeInvalideException("Champ formatVersion manquant")
+        }
+        if (formatVersion != FORMAT_VERSION_BACKUP) {
+            throw SauvegardeInvalideException(
+                "Version de format non supportée : $formatVersion (attendu : $FORMAT_VERSION_BACKUP)"
+            )
+        }
+
+        // Champs racines requis
+        val titreListe = root.optString("titreListe").takeIf { it.isNotBlank() }
+            ?: throw SauvegardeInvalideException("Titre de liste manquant")
+
+        val jsonCategories = root.optJSONArray("categories")
+            ?: throw SauvegardeInvalideException("Liste de catégories manquante")
+
+        val jsonTaches = root.optJSONArray("taches")
+            ?: throw SauvegardeInvalideException("Liste de tâches manquante")
+
+        val jsonParametres = root.optJSONArray("parametres") ?: JSONArray()
+
+        // Parser catégories
+        val categories = mutableListOf<CategorieEntity>()
+        val nomsCategories = mutableSetOf<String>()
+        for (i in 0 until jsonCategories.length()) {
+            val obj = jsonCategories.getJSONObject(i)
+            val nom = obj.optString("nom").takeIf { it.isNotBlank() }
+                ?: throw SauvegardeInvalideException("Catégorie sans nom à l'index $i")
+            if (!nomsCategories.add(nom)) {
+                throw SauvegardeInvalideException("Catégorie en doublon : $nom")
+            }
+            categories.add(
+                CategorieEntity(
+                    nom = nom,
+                    ordre = obj.optInt("ordre", 0),
+                    couleur = obj.optLong("couleur", 0xFFFFFFFFL),
+                    repliee = obj.optBoolean("repliee", false)
+                )
+            )
+        }
+
+        // Parser tâches
+        val taches = mutableListOf<TacheEntity>()
+        for (i in 0 until jsonTaches.length()) {
+            val obj = jsonTaches.getJSONObject(i)
+            val titre = obj.optString("titre").takeIf { it.isNotBlank() }
+                ?: throw SauvegardeInvalideException("Tâche sans titre à l'index $i")
+            val categorie = obj.optString("categorie").takeIf { it.isNotBlank() }
+                ?: throw SauvegardeInvalideException("Tâche \"$titre\" sans catégorie")
+            if (categorie !in nomsCategories) {
+                throw SauvegardeInvalideException(
+                    "Tâche \"$titre\" référence une catégorie inconnue : $categorie"
+                )
+            }
+            taches.add(
+                TacheEntity(
+                    id = 0,  // sera regénéré par Room
+                    titre = titre,
+                    categorie = categorie,
+                    faite = obj.optBoolean("faite", false),
+                    ordre = obj.optInt("ordre", 0)
+                )
+            )
+        }
+
+        // Parser paramètres
+        val parametres = mutableListOf<ParametreEntity>()
+        for (i in 0 until jsonParametres.length()) {
+            val obj = jsonParametres.getJSONObject(i)
+            val cle = obj.optString("cle").takeIf { it.isNotBlank() } ?: continue
+            val valeur = obj.optString("valeur")
+            parametres.add(ParametreEntity(cle = cle, valeur = valeur))
+        }
+
+        return ContenuSauvegarde(
+            titreListe = titreListe,
+            nbCategories = categories.size,
+            nbTaches = taches.size,
+            dateSauvegarde = root.optString("exportDate").takeIf { it.isNotBlank() },
+            versionApp = root.optString("appVersion").takeIf { it.isNotBlank() },
+            parametres = parametres,
+            categories = categories,
+            taches = taches
+        )
+    }
+
+    fun confirmerRestauration() {
+        val etat = _etatRestauration.value
+        if (etat !is EtatRestauration.FichierLu) return
+
+        viewModelScope.launch {
+            try {
+                val contenu = etat.contenu
+
+                database.withTransaction {
+                    // 1. Vider toutes les tables
+                    tacheDao.supprimerToutes()
+                    categorieDao.supprimerToutes()
+                    parametreDao.supprimerTous()
+
+                    // 2. Insérer les paramètres
+                    contenu.parametres.forEach { parametreDao.enregistrer(it) }
+
+                    // 3. Insérer les catégories
+                    contenu.categories.forEach { categorieDao.inserer(it) }
+
+                    // 4. Insérer les tâches
+                    contenu.taches.forEach { tacheDao.inserer(it) }
+                }
+
+                // 5. Réinitialiser les états transitoires
+                viderPileCochages()
+                _actionAnnulable.value = null
+                _termeRecherche.value = ""
+
+                _etatRestauration.value = EtatRestauration.Inactif
+                _evenements.emit("Restauration réussie")
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _etatRestauration.value = EtatRestauration.Erreur(
+                    "Erreur lors de la restauration : ${e.message}"
+                )
+                _evenements.emit("Échec de la restauration")
+            }
+        }
+    }
+
+    fun annulerRestauration() {
+        _etatRestauration.value = EtatRestauration.Inactif
+    }
+
+    fun consommerErreurRestauration() {
+        if (_etatRestauration.value is EtatRestauration.Erreur) {
+            _etatRestauration.value = EtatRestauration.Inactif
         }
     }
 

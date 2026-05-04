@@ -33,6 +33,7 @@ fun TodoListTopBar(
     onRenommerListe: () -> Unit,
     onToutCocher: () -> Unit,
     onSauvegardeComplete: () -> Unit,
+    onRestaurerSauvegarde: () -> Unit,
     isSearchMode: Boolean,
     onToggleSearchMode: () -> Unit,
     searchTerm: String,
@@ -145,6 +146,13 @@ fun TodoListTopBar(
                             onClick = {
                                 afficherMenu = false
                                 onSauvegardeComplete()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Restaurer une sauvegarde") },
+                            onClick = {
+                                afficherMenu = false
+                                onRestaurerSauvegarde()
                             }
                         )
                         DropdownMenuItem(

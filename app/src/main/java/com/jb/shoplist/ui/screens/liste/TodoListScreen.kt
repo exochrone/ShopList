@@ -25,6 +25,7 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.ui.unit.Dp
 import com.jb.shoplist.ActionAnnulable
 import com.jb.shoplist.CategorieEntity
+import com.jb.shoplist.EtatRestauration
 import com.jb.shoplist.TacheEntity
 import com.jb.shoplist.TodoUiState
 import com.jb.shoplist.ui.components.SaisieDialog
@@ -56,6 +57,11 @@ fun TodoListScreen(
     onBasculerAfficherFaites: (Boolean) -> Unit,
     onSetTermeRecherche: (String) -> Unit,
     onSauvegardeComplete: (Uri) -> Unit,
+    etatRestauration: EtatRestauration,
+    onLireFichierSauvegarde: (Uri) -> Unit,
+    onConfirmerRestauration: () -> Unit,
+    onAnnulerRestauration: () -> Unit,
+    onConsommerErreurRestauration: () -> Unit
 ) {
     var modeRecherche by remember { mutableStateOf(false) }
 
@@ -83,6 +89,14 @@ fun TodoListScreen(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
         uri?.let { onSauvegardeComplete(it) }
+    }
+
+    var afficherDialogPreRestauration by remember { mutableStateOf(false) }
+
+    val launcherRestauration = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { onLireFichierSauvegarde(it) }
     }
 
     val lignes: List<LigneAffichee> = remember(uiState.categories, uiState.taches, uiState.afficherFaites, uiState.termeRecherche) {
@@ -178,6 +192,7 @@ fun TodoListScreen(
                     }.json"
                     launcherSauvegardeComplete.launch(nomFichier)
                 },
+                onRestaurerSauvegarde = { afficherDialogPreRestauration = true },
                 isSearchMode = modeRecherche,
                 onToggleSearchMode = {
                     modeRecherche = !modeRecherche
@@ -278,6 +293,77 @@ fun TodoListScreen(
                 )
             }
         }
+    }
+
+    // Dialog 1 : avertissement avant ouverture du sélecteur
+    if (afficherDialogPreRestauration) {
+        AlertDialog(
+            onDismissRequest = { afficherDialogPreRestauration = false },
+            title = { Text("Restaurer une sauvegarde") },
+            text = {
+                Text(
+                    "La restauration va remplacer toutes les données actuelles " +
+                            "(catégories, tâches, paramètres). Cette action est irréversible.\n\n" +
+                            "Voulez-vous continuer ?"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    afficherDialogPreRestauration = false
+                    launcherRestauration.launch(arrayOf("application/json"))
+                }) { Text("Choisir un fichier") }
+            },
+            dismissButton = {
+                TextButton(onClick = { afficherDialogPreRestauration = false }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
+
+    // Dialog 2 : confirmation après lecture du fichier
+    val etatFichierLu = etatRestauration as? EtatRestauration.FichierLu
+    if (etatFichierLu != null) {
+        AlertDialog(
+            onDismissRequest = onAnnulerRestauration,
+            title = { Text("Confirmer la restauration") },
+            text = {
+                val contenu = etatFichierLu.contenu
+                val dateLisible = contenu.dateSauvegarde
+                    ?.substringBefore("T")  // garde juste la date
+                    ?: "inconnue"
+                Text(
+                    "Cette sauvegarde contient :\n" +
+                            "- Liste : ${contenu.titreListe}\n" +
+                            "- ${contenu.nbCategories} catégorie${if (contenu.nbCategories > 1) "s" else ""}\n" +
+                            "- ${contenu.nbTaches} tâche${if (contenu.nbTaches > 1) "s" else ""}\n" +
+                            "- Datée du : $dateLisible\n\n" +
+                            "Toutes les données actuelles seront remplacées."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = onConfirmerRestauration,
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                ) { Text("Restaurer") }
+            },
+            dismissButton = {
+                TextButton(onClick = onAnnulerRestauration) { Text("Annuler") }
+            }
+        )
+    }
+
+    // Dialog 3 : message d'erreur si la lecture a échoué
+    val etatErreur = etatRestauration as? EtatRestauration.Erreur
+    if (etatErreur != null) {
+        AlertDialog(
+            onDismissRequest = onConsommerErreurRestauration,
+            title = { Text("Restauration impossible") },
+            text = { Text(etatErreur.message) },
+            confirmButton = {
+                TextButton(onClick = onConsommerErreurRestauration) { Text("OK") }
+            }
+        )
     }
 
     if (afficherDialogImport) {

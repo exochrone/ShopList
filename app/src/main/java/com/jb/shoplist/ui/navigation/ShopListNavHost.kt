@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import android.net.Uri
 import com.jb.shoplist.ActionCochage
+import com.jb.shoplist.EtatRestauration
 import com.jb.shoplist.TodoUiState
 import com.jb.shoplist.TodoViewModel
 import com.jb.shoplist.ui.screens.categories.CategoriesScreen
@@ -21,7 +22,8 @@ fun ShopListNavHost(
     uiState: TodoUiState,
     viewModel: TodoViewModel,
     snackbarHostState: SnackbarHostState,
-    pileCochages: List<ActionCochage>
+    pileCochages: List<ActionCochage>,
+    etatRestauration: EtatRestauration
 ) {
     NavHost(navController = navController, startDestination = Routes.LISTE) {
         composable(Routes.LISTE) {
@@ -46,7 +48,12 @@ fun ShopListNavHost(
                 onToutCocher = viewModel::toutCocher,
                 onBasculerAfficherFaites = viewModel::setAfficherFaites,
                 onSetTermeRecherche = viewModel::setTermeRecherche,
-                onSauvegardeComplete = viewModel::sauvegardeComplete
+                onSauvegardeComplete = viewModel::sauvegardeComplete,
+                etatRestauration = etatRestauration,
+                onLireFichierSauvegarde = viewModel::lireFichierSauvegarde,
+                onConfirmerRestauration = viewModel::confirmerRestauration,
+                onAnnulerRestauration = viewModel::annulerRestauration,
+                onConsommerErreurRestauration = viewModel::consommerErreurRestauration
             )
         }
         composable(Routes.CATEGORIES) {

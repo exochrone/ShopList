@@ -40,6 +40,9 @@ interface TacheDao {
 
     @Query("DELETE FROM taches WHERE categorie = :nomCategorie")
     suspend fun supprimerParCategorie(nomCategorie: String)
+
+    @Query("DELETE FROM taches")
+    suspend fun supprimerToutes()
 }
 
 @Dao
@@ -59,6 +62,9 @@ interface CategorieDao {
 
     @Delete
     suspend fun supprimer(categorie: CategorieEntity)
+
+    @Query("DELETE FROM categories")
+    suspend fun supprimerToutes()
 }
 
 @Dao
@@ -69,4 +75,7 @@ interface ParametreDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun enregistrer(parametre: ParametreEntity)
+
+    @Query("DELETE FROM parametres")
+    suspend fun supprimerTous()
 }
