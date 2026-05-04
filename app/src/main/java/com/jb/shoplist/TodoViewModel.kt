@@ -1,6 +1,7 @@
 package com.jb.shoplist
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
@@ -15,8 +16,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.Closeable
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 private const val UNDO_STACK_MAX_SIZE = 10
+private const val FORMAT_VERSION_BACKUP = 1
 
 sealed class ActionAnnulable {
     abstract val message: String
@@ -381,6 +388,83 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     fun modifierTitreListe(nouveauTitre: String) {
         viewModelScope.launch {
             parametreDao.enregistrer(ParametreEntity(cle = "titreListe", valeur = nouveauTitre))
+        }
+    }
+
+    fun sauvegardeComplete(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val context = getApplication<Application>().applicationContext
+
+                // 1. Construire le JSON
+                val json = construireJsonSauvegarde()
+
+                // 2. Écrire dans le fichier choisi
+                context.contentResolver.openOutputStream(uri)?.use { stream ->
+                    stream.bufferedWriter(Charsets.UTF_8).use { writer ->
+                        writer.write(json.toString(2))  // indentation 2 espaces
+                    }
+                }
+
+                _evenements.emit("Sauvegarde réussie")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _evenements.emit("Erreur lors de la sauvegarde : ${e.message}")
+            }
+        }
+    }
+
+    private suspend fun construireJsonSauvegarde(): JSONObject {
+        val state = uiState.value
+
+        // Récupérer tous les paramètres présents dans la base
+        val parametres = listOf("titreListe", "afficherFaites").mapNotNull { cle ->
+            parametreDao.observer(cle).first()?.let { valeur ->
+                JSONObject().apply {
+                    put("cle", cle)
+                    put("valeur", valeur)
+                }
+            }
+        }
+
+        // Construire le tableau des catégories
+        val jsonCategories = JSONArray().apply {
+            state.categories.forEach { cat ->
+                put(JSONObject().apply {
+                    put("nom", cat.nom)
+                    put("ordre", cat.ordre)
+                    put("couleur", cat.couleur)
+                    put("repliee", cat.repliee)
+                })
+            }
+        }
+
+        // Construire le tableau des tâches
+        val jsonTaches = JSONArray().apply {
+            state.taches.forEach { tache ->
+                put(JSONObject().apply {
+                    put("titre", tache.titre)
+                    put("categorie", tache.categorie)
+                    put("faite", tache.faite)
+                    put("ordre", tache.ordre)
+                })
+            }
+        }
+
+        // Construire le tableau des paramètres
+        val jsonParametres = JSONArray().apply {
+            parametres.forEach { put(it) }
+        }
+
+        // Assembler le tout
+        return JSONObject().apply {
+            put("formatVersion", FORMAT_VERSION_BACKUP)
+            put("exportDate", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+            put("appVersion", BuildConfig.VERSION_NAME)
+            put("titreListe", state.titreListe)
+            put("parametres", jsonParametres)
+            put("categories", jsonCategories)
+            put("taches", jsonTaches)
         }
     }
 

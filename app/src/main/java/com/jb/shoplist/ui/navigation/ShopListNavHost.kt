@@ -7,6 +7,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import android.net.Uri
 import com.jb.shoplist.ActionCochage
 import com.jb.shoplist.TodoUiState
 import com.jb.shoplist.TodoViewModel
@@ -45,6 +46,7 @@ fun ShopListNavHost(
                 onToutCocher = viewModel::toutCocher,
                 onBasculerAfficherFaites = viewModel::setAfficherFaites,
                 onSetTermeRecherche = viewModel::setTermeRecherche,
+                onSauvegardeComplete = viewModel::sauvegardeComplete
             )
         }
         composable(Routes.CATEGORIES) {

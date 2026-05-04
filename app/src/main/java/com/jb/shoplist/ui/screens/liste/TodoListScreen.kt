@@ -1,5 +1,6 @@
 package com.jb.shoplist.ui.screens.liste
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -54,6 +55,7 @@ fun TodoListScreen(
     onToutCocher: () -> Unit,
     onBasculerAfficherFaites: (Boolean) -> Unit,
     onSetTermeRecherche: (String) -> Unit,
+    onSauvegardeComplete: (Uri) -> Unit,
 ) {
     var modeRecherche by remember { mutableStateOf(false) }
 
@@ -75,6 +77,12 @@ fun TodoListScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: android.net.Uri? ->
         uri?.let { onImporterCsv(it) }
+    }
+
+    val launcherSauvegardeComplete = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri?.let { onSauvegardeComplete(it) }
     }
 
     val lignes: List<LigneAffichee> = remember(uiState.categories, uiState.taches, uiState.afficherFaites, uiState.termeRecherche) {
@@ -162,6 +170,13 @@ fun TodoListScreen(
                 onToutCocher = {
                     onBasculerAfficherFaites(true)
                     onToutCocher()
+                },
+                onSauvegardeComplete = {
+                    val nomFichier = "shopList-Backup-${
+                        java.text.SimpleDateFormat("yyMMdd", java.util.Locale.getDefault())
+                            .format(java.util.Date())
+                    }.json"
+                    launcherSauvegardeComplete.launch(nomFichier)
                 },
                 isSearchMode = modeRecherche,
                 onToggleSearchMode = {

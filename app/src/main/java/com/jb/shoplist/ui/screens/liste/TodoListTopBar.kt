@@ -32,6 +32,7 @@ fun TodoListTopBar(
     onOuvrirImport: () -> Unit,
     onRenommerListe: () -> Unit,
     onToutCocher: () -> Unit,
+    onSauvegardeComplete: () -> Unit,
     isSearchMode: Boolean,
     onToggleSearchMode: () -> Unit,
     searchTerm: String,
@@ -137,6 +138,13 @@ fun TodoListTopBar(
                             onClick = {
                                 afficherMenu = false
                                 onOuvrirImport()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Sauvegarde complète") },
+                            onClick = {
+                                afficherMenu = false
+                                onSauvegardeComplete()
                             }
                         )
                         DropdownMenuItem(
