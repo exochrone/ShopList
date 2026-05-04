@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [TacheEntity::class, CategorieEntity::class, ParametreEntity::class],
     version = 3,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class TodoDatabase : RoomDatabase() {
 
@@ -27,7 +27,6 @@ abstract class TodoDatabase : RoomDatabase() {
                     TodoDatabase::class.java,
                     "todo_database"
                 )
-                .fallbackToDestructiveMigration()
                 .build().also { INSTANCE = it }
             }
         }
