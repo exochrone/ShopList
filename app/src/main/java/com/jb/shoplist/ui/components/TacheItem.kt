@@ -8,7 +8,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jb.shoplist.TacheEntity
@@ -36,7 +35,7 @@ fun TacheItem(
         )
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 0.dp)
         ) {
             Checkbox(
@@ -55,8 +54,6 @@ fun TacheItem(
             Text(
                 text = tache.titre,
                 fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 textDecoration = if (tache.faite) TextDecoration.LineThrough else TextDecoration.None,
                 color = couleurTexteActive,
                 modifier = Modifier
