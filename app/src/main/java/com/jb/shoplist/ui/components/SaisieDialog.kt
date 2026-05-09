@@ -29,11 +29,13 @@ fun SaisieDialog(
     placeholder: String = "",
     libelleValider: String = "Valider",
     validerSiVide: Boolean = false,
+    onCheckErreur: (String) -> String? = { null },
     onValider: (String) -> Unit,
     onAnnuler: () -> Unit,
     actionsSupplementaires: (@Composable RowScope.() -> Unit)? = null
 ) {
     var valeur by remember { mutableStateOf(valeurInitiale) }
+    val erreur = remember(valeur) { onCheckErreur(valeur) }
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
@@ -46,20 +48,29 @@ fun SaisieDialog(
                 onValueChange = { valeur = it },
                 placeholder = { Text(placeholder) },
                 singleLine = true,
+                isError = erreur != null,
+                supportingText = {
+                    if (erreur != null) {
+                        Text(erreur)
+                    }
+                },
                 modifier = Modifier.focusRequester(focusRequester)
             )
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 actionsSupplementaires?.invoke(this)
-                TextButton(onClick = {
-                    val v = valeur.trim()
-                    if (validerSiVide || v.isNotBlank()) {
-                        onValider(v)
-                    } else {
-                        onAnnuler()
-                    }
-                }) { Text(libelleValider) }
+                TextButton(
+                    onClick = {
+                        val v = valeur.trim()
+                        if (validerSiVide || v.isNotBlank()) {
+                            onValider(v)
+                        } else {
+                            onAnnuler()
+                        }
+                    },
+                    enabled = erreur == null
+                ) { Text(libelleValider) }
             }
         },
         dismissButton = {

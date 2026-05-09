@@ -201,10 +201,12 @@ fun CategoriesScreen(
             titre = "Nouvelle catégorie",
             placeholder = "Nom de la catégorie",
             libelleValider = "Ajouter",
+            onCheckErreur = { nom ->
+                val existeDeja = categories.any { it.nom.lowercase().trim() == nom.lowercase().trim() }
+                if (existeDeja) "Cette catégorie existe déjà" else null
+            },
             onValider = { nom ->
-                if (categories.none { it.nom == nom }) {
-                    onAjouterCategorie(nom)
-                }
+                onAjouterCategorie(nom)
                 afficherDialogAjout = false
             },
             onAnnuler = { afficherDialogAjout = false }
@@ -216,6 +218,10 @@ fun CategoriesScreen(
             titre = "Modifier la catégorie",
             valeurInitiale = cat.nom,
             placeholder = "Nom de la catégorie",
+            onCheckErreur = { nom ->
+                val existeDeja = categories.any { it.nom.lowercase().trim() == nom.lowercase().trim() && it.nom != cat.nom }
+                if (existeDeja) "Cette catégorie existe déjà" else null
+            },
             onValider = { nom ->
                 onRenommerCategorie(cat, nom)
                 categorieEnEdition = null

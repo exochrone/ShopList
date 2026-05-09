@@ -115,7 +115,7 @@ fun TodoListScreen(
                 val tachesFinales = if (recherche.isEmpty()) {
                     tachesFiltreesParFait
                 } else {
-                    tachesFiltreesParFait.filter { tache ->
+                    tachesDeLaCat.filter { tache ->
                         tache.titre.sansAccents().lowercase().contains(recherche) ||
                                 cat.nom.sansAccents().lowercase().contains(recherche)
                     }
@@ -388,10 +388,12 @@ fun TodoListScreen(
             titre = "Nouvelle catégorie",
             placeholder = "Nom de la catégorie",
             libelleValider = "Ajouter",
+            onCheckErreur = { nom ->
+                val existeDeja = uiState.categories.any { it.nom.lowercase().trim() == nom.lowercase().trim() }
+                if (existeDeja) "Cette catégorie existe déjà" else null
+            },
             onValider = { nom ->
-                if (uiState.categories.none { it.nom == nom }) {
-                    onAjouterCategorie(nom)
-                }
+                onAjouterCategorie(nom)
                 afficherDialogCategorie = false
             },
             onAnnuler = { afficherDialogCategorie = false }
@@ -416,6 +418,12 @@ fun TodoListScreen(
             titre = "Nouvelle tâche dans « $categorie »",
             placeholder = "Nom de la tâche",
             libelleValider = "Ajouter",
+            onCheckErreur = { titre ->
+                val tacheExistante = uiState.taches.find {
+                    it.titre.lowercase().trim() == titre.lowercase().trim()
+                }
+                if (tacheExistante != null) "Cet élément existe déjà dans la catégorie ${tacheExistante.categorie}" else null
+            },
             onValider = { titre ->
                 onAjouterTache(titre, categorie)
                 categorieCibleAjout = null
@@ -429,6 +437,13 @@ fun TodoListScreen(
             titre = "Modifier la tâche",
             valeurInitiale = tache.titre,
             placeholder = "Nom de la tâche",
+            onCheckErreur = { titre ->
+                val tacheExistante = uiState.taches.find {
+                    it.id != tache.id &&
+                    it.titre.lowercase().trim() == titre.lowercase().trim()
+                }
+                if (tacheExistante != null) "Cet élément existe déjà dans la catégorie ${tacheExistante.categorie}" else null
+            },
             onValider = { titre ->
                 onModifierTitreTache(tache, titre)
                 tacheEnEdition = null
