@@ -32,7 +32,7 @@ class ProduitEditionDialogTest {
             ProduitEditionDialog(
                 tache = tacheTest,
                 categories = categories,
-                onCheckErreurTitre = { null },
+                onCheckErreurTitre = { _, _ -> null },
                 onValider = { _, _, _ -> },
                 onSupprimer = { },
                 onFermer = { }
@@ -51,7 +51,7 @@ class ProduitEditionDialogTest {
             ProduitEditionDialog(
                 tache = tacheTest.copy(titre = ""),
                 categories = categories,
-                onCheckErreurTitre = { null },
+                onCheckErreurTitre = { _, _ -> null },
                 onValider = { _, _, _ -> },
                 onSupprimer = { },
                 onFermer = { }
@@ -70,7 +70,7 @@ class ProduitEditionDialogTest {
             ProduitEditionDialog(
                 tache = tacheTest,
                 categories = categories,
-                onCheckErreurTitre = { null },
+                onCheckErreurTitre = { _, _ -> null },
                 onValider = { _, _, cat ->
                     validerAppele = true
                     nouvelleCatRecue = cat
@@ -100,7 +100,7 @@ class ProduitEditionDialogTest {
             ProduitEditionDialog(
                 tache = tacheTest,
                 categories = categories,
-                onCheckErreurTitre = { null },
+                onCheckErreurTitre = { _, _ -> null },
                 onValider = { _, _, _ -> validerAppele = true },
                 onSupprimer = { },
                 onFermer = { fermerAppele = true }
@@ -120,7 +120,7 @@ class ProduitEditionDialogTest {
                 tache = null,
                 categories = categories,
                 categorieInitiale = "Frais",
-                onCheckErreurTitre = { null },
+                onCheckErreurTitre = { _, _ -> null },
                 onValider = { _, _, _ -> },
                 onFermer = { }
             )
@@ -140,7 +140,7 @@ class ProduitEditionDialogTest {
                 tache = null,
                 categories = categories,
                 categorieInitiale = "Frais",
-                onCheckErreurTitre = { null },
+                onCheckErreurTitre = { _, _ -> null },
                 onValider = { _, _, _ -> },
                 onFermer = { }
             )
@@ -160,7 +160,7 @@ class ProduitEditionDialogTest {
                 tache = null,
                 categories = categories,
                 categorieInitiale = "Frais",
-                onCheckErreurTitre = { null },
+                onCheckErreurTitre = { _, _ -> null },
                 onValider = { t, q, c ->
                     titreRecu = t
                     quantiteRecue = q
@@ -188,7 +188,7 @@ class ProduitEditionDialogTest {
                 tache = null,
                 categories = categories,
                 categorieInitiale = "Frais",
-                onCheckErreurTitre = { null },
+                onCheckErreurTitre = { _, _ -> null },
                 onValider = { _, _, c -> catRecue = c },
                 onFermer = { }
             )
@@ -212,7 +212,7 @@ class ProduitEditionDialogTest {
                 tache = null,
                 categories = categories,
                 categorieInitiale = "Frais",
-                onCheckErreurTitre = { null },
+                onCheckErreurTitre = { _, _ -> null },
                 onValider = { _, _, _ -> validerAppele = true },
                 onFermer = { fermerAppele = true }
             )
@@ -222,5 +222,51 @@ class ProduitEditionDialogTest {
 
         assertTrue(fermerAppele)
         assertFalse(validerAppele)
+    }
+
+    @Test
+    fun testErreurUniciteCategorieAfficheMessageEtDesactiveAjouter() {
+        composeTestRule.setContent {
+            ProduitEditionDialog(
+                tache = null,
+                categories = categories,
+                categorieInitiale = "Frais",
+                onCheckErreurTitre = { _, cat ->
+                    if (cat == "Frais") "Ce produit existe déjà dans cette catégorie." else null
+                },
+                onValider = { _, _, _ -> },
+                onFermer = { }
+            )
+        }
+
+        composeTestRule.onNodeWithText("Nom du produit").performTextInput("Lait")
+        composeTestRule.onNodeWithText("Ce produit existe déjà dans cette catégorie.").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Ajouter").assertIsNotEnabled()
+    }
+
+    @Test
+    fun testChangementCategorieEffaceErreurUniciteEtActiveAjouter() {
+        composeTestRule.setContent {
+            ProduitEditionDialog(
+                tache = null,
+                categories = categories,
+                categorieInitiale = "Frais",
+                onCheckErreurTitre = { _, cat ->
+                    if (cat == "Frais") "Ce produit existe déjà dans cette catégorie." else null
+                },
+                onValider = { _, _, _ -> },
+                onFermer = { }
+            )
+        }
+
+        composeTestRule.onNodeWithText("Nom du produit").performTextInput("Lait")
+        composeTestRule.onNodeWithText("Ce produit existe déjà dans cette catégorie.").assertIsDisplayed()
+
+        // Sélectionner "Épicerie"
+        composeTestRule.onNodeWithText("Frais").performClick()
+        composeTestRule.onNodeWithText("Épicerie").performClick()
+
+        composeTestRule.onNodeWithText("Ce produit existe déjà dans cette catégorie.").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Ajouter").assertIsEnabled()
     }
 }

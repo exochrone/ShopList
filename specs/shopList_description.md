@@ -2,7 +2,7 @@
 
 Document de référence décrivant l'application shopList telle qu'elle existe dans le dépôt `exochrone/shopList` (version `2026.04`, versionCode 2, branche `main`). Il sert de contexte pour concevoir et spécifier les évolutions.
 
-Modules implémentés depuis la première version de ce document : **MODULE 01** (quantités des produits), **MODULE 01b** (affichage de la quantité) et **MODULE 02** (dialogue « Nouveau produit » harmonisé, catégories en couleur dans les dialogues produit). Leurs spécifications sont dans le dossier `/specs` du dépôt.
+Modules implémentés depuis la première version de ce document : **MODULE 01** (quantités des produits), **MODULE 01b** (affichage de la quantité), **MODULE 02** (dialogue « Nouveau produit » harmonisé, catégories en couleur dans les dialogues produit) et **MODULE 03** (tri alphabétique respectant les lettres accentuées). Leurs spécifications sont dans le dossier `/specs` du dépôt.
 
 ---
 
@@ -41,7 +41,7 @@ Vocabulaire : l'application est née comme une todo list. Dans le code et dans u
   * Le bouton ⋮ ouvre un menu :
     * « N élément(s) » (information, non cliquable) ;
     * **Ajout d'élément** : ouvre le dialogue « Nouveau produit » avec cette catégorie présélectionnée (voir 2.2) ;
-    * **Tri alphabétique** : trie les produits de la catégorie ;
+    * **Tri alphabétique** : trie les produits de la catégorie selon l'ordre alphabétique français (lettres accentuées et ligature « Œ » rangées avec leur lettre de base, casse ignorée : « Échalotes » et « Épinards » se placent à la lettre E) ;
     * **Modifier la catégorie** : renommer (même règle d'unicité qu'en 2.6) ;
     * **Choix de la couleur** : palette des 20 couleurs ;
     * **Supprimer** (icône rouge) : confirmation « N tâche(s) dans la catégorie X seront supprimées avec la catégorie. Voulez-vous continuer ? » (Oui / Non), demandée même si la catégorie est vide ; puis snackbar avec **Annuler**.
@@ -118,7 +118,7 @@ Comportement :
 
 Chaque catégorie affiche : poignée de déplacement, nom (dans sa couleur), nombre de produits (« Vide » ou « N tâche(s) »), puis trois boutons :
 
-* **Trier A→Z** : trie alphabétiquement les produits de la catégorie.
+* **Trier A→Z** : trie alphabétiquement les produits de la catégorie (même règle que le menu ⋮, voir 2.1).
 * **Palette** : choix de la couleur dans une palette fixe de 20 couleurs.
 * **Supprimer** : suppression directe si la catégorie est vide ; sinon, confirmation « N tâche(s) dans la catégorie X seront supprimées avec la catégorie ». Snackbar avec **Annuler** qui restaure la catégorie et ses produits.
 
@@ -230,7 +230,7 @@ app/src/main/java/com/jb/shoplist/
 ├── Daos.kt                    DAO Room
 ├── TodoDatabase.kt            Base Room (singleton) et migration 3 → 4
 ├── TodoViewModel.kt           ViewModel unique, états, sauvegarde, CSV
-├── Formatage.kt               Fonctions pures : libellé avec quantité, découpage CSV
+├── Formatage.kt               Fonctions pures : libellé avec quantité, découpage CSV, comparateur alphabétique
 └── ui/
     ├── navigation/
     │   ├── Routes.kt          Constantes de routes
@@ -336,6 +336,7 @@ Principales fonctions publiques : `ajouterTache`, `basculerFait`, `annulerDernie
 
 * `libelleAvecQuantite(titre, quantite)` : `"titre : quantite"`, ou `"titre"` si la quantité est vide (utilisée par le partage).
 * `parserLigneCsv(ligne)` : découpe une ligne CSV séparée par `;` en respectant les guillemets (utilisée par l'import).
+* `comparateurAlphabetique()` : `Comparator<String>` basé sur `java.text.Collator.getInstance(Locale.FRENCH)` en force `Collator.TERTIARY` (nouvelle instance à chaque appel). Utilisé par `trierTachesParAlpha` via `sortedWith(compareBy(comparateurAlphabetique()) { it.titre })`.
 
 ### 3.6 Interface
 
@@ -380,7 +381,7 @@ Principales fonctions publiques : `ajouterTache`, `basculerFait`, `annulerDernie
 * **Doublon fonctionnel** : la gestion des catégories existe à la fois dans le menu ⋮ des en-têtes et dans l'écran « Gestion des catégories », avec une petite différence (confirmation de suppression toujours demandée depuis le menu ⋮, seulement pour une catégorie non vide depuis l'écran dédié).
 * **Libellés** mêlant « tâche », « élément » et « produit » (« Ajout d'élément », « Tâche supprimée », « N tâche(s) »…).
 * **Données d'exemple** du premier lancement héritées de la todo list.
-* **Tests** : `FormatageTest` (unitaires) et `ProduitEditionDialogTest` (Compose, modes ajout et modification, à lancer avec `./gradlew connectedAndroidTest`, appareil branché).
+* **Tests** : `FormatageTest` (unitaires : libellé avec quantité, découpage CSV, comparateur alphabétique) et `ProduitEditionDialogTest` (Compose, modes ajout et modification, à lancer avec `./gradlew connectedAndroidTest`, appareil branché).
 * `StatusBarColor` défini via une API dépréciée dans `Theme.kt`.
 
 ---

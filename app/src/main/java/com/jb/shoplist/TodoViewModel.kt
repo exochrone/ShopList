@@ -368,6 +368,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                     val categoriesActuelles = uiState.value.categories.map { it.nom }.toMutableSet()
                     var ordreMaxCat = uiState.value.categories.maxOfOrNull { it.ordre } ?: -1
                     var ordreMaxTache = tacheDao.obtenirOrdreMax() ?: -1
+                    val tachesConnues = uiState.value.taches.toMutableList()
 
                     lignes.forEach { ligne ->
                         val colonnes = parserLigneCsv(ligne)
@@ -385,21 +386,23 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                                 }
 
                                 // 2. Gérer la tâche
-                                val tacheExistante = tacheDao.trouverParTitreEtCategorie(titreTache, nomCat)
-                                if (tacheExistante == null) {
+                                val indexExistant = tachesConnues.indexOfFirst {
+                                    it.categorie == nomCat && nomsProduitsIdentiques(it.titre, titreTache)
+                                }
+                                if (indexExistant == -1) {
                                     ordreMaxTache++
-                                    tacheDao.inserer(
-                                        TacheEntity(
-                                            titre = titreTache,
-                                            categorie = nomCat,
-                                            ordre = ordreMaxTache,
-                                            quantite = quantiteImportee
-                                        )
+                                    val nouvelle = TacheEntity(
+                                        titre = titreTache,
+                                        categorie = nomCat,
+                                        ordre = ordreMaxTache,
+                                        quantite = quantiteImportee
                                     )
+                                    val nouvelId = tacheDao.inserer(nouvelle)
+                                    tachesConnues.add(nouvelle.copy(id = nouvelId.toInt()))
                                 } else if (quantiteImportee.isNotBlank()) {
-                                    tacheDao.mettreAJour(
-                                        tacheExistante.copy(quantite = quantiteImportee)
-                                    )
+                                    val majee = tachesConnues[indexExistant].copy(quantite = quantiteImportee)
+                                    tacheDao.mettreAJour(majee)
+                                    tachesConnues[indexExistant] = majee
                                 }
                             }
                         }

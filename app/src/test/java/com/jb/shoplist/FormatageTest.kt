@@ -1,6 +1,8 @@
 package com.jb.shoplist
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FormatageTest {
@@ -60,5 +62,14 @@ class FormatageTest {
         val entres = listOf("Pâte", "Pate", "Orange", "Radis")
         val resultat = entres.sortedWith(comparateurAlphabetique())
         assertEquals(listOf("Orange", "Pate", "Pâte", "Radis"), resultat)
+    }
+
+    @Test
+    fun testNomsProduitsIdentiques() {
+        assertTrue(nomsProduitsIdentiques("Lait", "lait"))
+        assertTrue(nomsProduitsIdentiques("  Lait ", "Lait"))
+        assertFalse(nomsProduitsIdentiques("Lait", "Lait demi-écrémé"))
+        assertTrue(nomsProduitsIdentiques("Épinards", "épinards"))
+        assertFalse(nomsProduitsIdentiques("Epinards", "Épinards"))
     }
 }

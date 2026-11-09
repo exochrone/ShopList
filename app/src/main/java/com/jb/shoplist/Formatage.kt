@@ -15,6 +15,10 @@ fun comparateurAlphabetique(): Comparator<String> {
     return Comparator { a, b -> collator.compare(a, b) }
 }
 
+/** Vrai si deux noms de produit sont considérés identiques (casse et espaces de début/fin ignorés, accents comptés). */
+fun nomsProduitsIdentiques(a: String, b: String): Boolean =
+    a.trim().lowercase() == b.trim().lowercase()
+
 /** "Aubergine : 3", ou "Aubergine" si la quantité est vide. */
 fun libelleAvecQuantite(titre: String, quantite: String): String {
     return if (quantite.isNotBlank()) {

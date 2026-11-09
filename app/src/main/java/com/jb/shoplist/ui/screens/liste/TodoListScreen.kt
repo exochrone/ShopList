@@ -1,6 +1,7 @@
 package com.jb.shoplist.ui.screens.liste
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -27,6 +29,7 @@ import com.jb.shoplist.CategorieEntity
 import com.jb.shoplist.EtatRestauration
 import com.jb.shoplist.TacheEntity
 import com.jb.shoplist.TodoUiState
+import com.jb.shoplist.nomsProduitsIdentiques
 import com.jb.shoplist.ui.components.ProduitEditionDialog
 import com.jb.shoplist.ui.components.SaisieDialog
 import com.jb.shoplist.ui.components.TacheItem
@@ -67,7 +70,44 @@ fun TodoListScreen(
     onAnnulerRestauration: () -> Unit,
     onConsommerErreurRestauration: () -> Unit
 ) {
+    val context = LocalContext.current
+
     var modeRecherche by remember { mutableStateOf(false) }
+
+    var idTacheGlissee by remember { mutableStateOf<Int?>(null) }
+    var categorieOrigineGlissement by remember { mutableStateOf<String?>(null) }
+    var categorieFinaleGlissement by remember { mutableStateOf<String?>(null) }
+    var tachesAvantGlissement by remember { mutableStateOf<List<TacheEntity>?>(null) }
+
+    fun verifierDoublonApresGlissement() {
+        val idGlisse = idTacheGlissee
+        val catOrigine = categorieOrigineGlissement
+        val catFinale = categorieFinaleGlissement
+        val avantGlissement = tachesAvantGlissement
+
+        if (idGlisse != null && catOrigine != null && catFinale != null && avantGlissement != null) {
+            if (catFinale != catOrigine) {
+                val tacheOriginale = avantGlissement.firstOrNull { it.id == idGlisse }
+                if (tacheOriginale != null) {
+                    val existeDoublon = avantGlissement.any {
+                        it.id != idGlisse && it.categorie == catFinale && nomsProduitsIdentiques(it.titre, tacheOriginale.titre)
+                    }
+                    if (existeDoublon) {
+                        onReordonnerTaches(avantGlissement)
+                        Toast.makeText(
+                            context,
+                            "Ce produit existe déjà dans la catégorie $catFinale : déplacement annulé.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+        }
+        idTacheGlissee = null
+        categorieOrigineGlissement = null
+        categorieFinaleGlissement = null
+        tachesAvantGlissement = null
+    }
 
     BackHandler(enabled = modeRecherche) {
         modeRecherche = false
@@ -155,6 +195,7 @@ fun TodoListScreen(
             is LigneAffichee.Header -> cible.categorie.nom
             is LigneAffichee.ItemTache -> cible.tache.categorie
         }
+        categorieFinaleGlissement = nouvelleCategorieName
 
         val sansTache = uiState.taches.filter { it.id != tacheDeplacee.id }
         val tacheMiseAJour = tacheDeplacee.copy(categorie = nouvelleCategorieName)
@@ -329,7 +370,17 @@ fun TodoListScreen(
                             }
                         }
                         is LigneAffichee.ItemTache -> {
-                            val dragModifier = if (modeRecherche) Modifier else Modifier.longPressDraggableHandle()
+                            val dragModifier = if (modeRecherche) Modifier else Modifier.longPressDraggableHandle(
+                                onDragStarted = {
+                                    idTacheGlissee = ligne.tache.id
+                                    categorieOrigineGlissement = ligne.tache.categorie
+                                    categorieFinaleGlissement = ligne.tache.categorie
+                                    tachesAvantGlissement = uiState.taches
+                                },
+                                onDragStopped = {
+                                    verifierDoublonApresGlissement()
+                                }
+                            )
                             TacheItem(
                                 tache = ligne.tache,
                                 onCheckedChange = { onBasculerFait(ligne.tache) },
@@ -481,11 +532,11 @@ fun TodoListScreen(
             tache = null,
             categories = uiState.categories,
             categorieInitiale = categorie,
-            onCheckErreurTitre = { titre ->
-                val tacheExistante = uiState.taches.find {
-                    it.titre.lowercase().trim() == titre.lowercase().trim()
+            onCheckErreurTitre = { titre, cat ->
+                val existe = uiState.taches.any {
+                    it.categorie == cat && nomsProduitsIdentiques(it.titre, titre)
                 }
-                if (tacheExistante != null) "Cet élément existe déjà dans la catégorie ${tacheExistante.categorie}" else null
+                if (existe) "Ce produit existe déjà dans cette catégorie." else null
             },
             onValider = { titre, quantite, cat ->
                 onAjouterTache(titre, cat, quantite)
@@ -499,12 +550,11 @@ fun TodoListScreen(
         ProduitEditionDialog(
             tache = tache,
             categories = uiState.categories,
-            onCheckErreurTitre = { titre ->
-                val tacheExistante = uiState.taches.find {
-                    it.id != tache.id &&
-                    it.titre.lowercase().trim() == titre.lowercase().trim()
+            onCheckErreurTitre = { titre, cat ->
+                val existe = uiState.taches.any {
+                    it.id != tache.id && it.categorie == cat && nomsProduitsIdentiques(it.titre, titre)
                 }
-                if (tacheExistante != null) "Cet élément existe déjà dans la catégorie ${tacheExistante.categorie}" else null
+                if (existe) "Ce produit existe déjà dans cette catégorie." else null
             },
             onValider = { nouveauTitre, nouvelleQuantite, nouvelleCategorie ->
                 onModifierProduit(tache, nouveauTitre, nouvelleQuantite, nouvelleCategorie)

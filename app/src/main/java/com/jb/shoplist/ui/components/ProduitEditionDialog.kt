@@ -29,7 +29,7 @@ fun ProduitEditionDialog(
     tache: TacheEntity?,
     categories: List<CategorieEntity>,
     categorieInitiale: String = tache?.categorie ?: "",
-    onCheckErreurTitre: (String) -> String?,
+    onCheckErreurTitre: (titre: String, categorie: String) -> String?,
     onValider: (titre: String, quantite: String, categorie: String) -> Unit,
     onSupprimer: () -> Unit = {},
     onFermer: () -> Unit
@@ -47,7 +47,7 @@ fun ProduitEditionDialog(
     val titreClean = titre.trim()
     val quantiteClean = quantite.trim()
 
-    val erreurTitre = onCheckErreurTitre(titreClean)
+    val erreurTitre = onCheckErreurTitre(titreClean, categorie)
     val validerActif = titreClean.isNotEmpty() && erreurTitre == null
 
     val aModifie = modeAjout ||
