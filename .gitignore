@@ -1,6 +1,7 @@
 *.iml
 .gradle
 /local.properties
+.idea/
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -15,3 +16,27 @@
 local.properties
 /app/release/
 /app/debug/
+.gitignore
+
+# --- Kotlin 2.x (fichiers de session du compilateur) ---
+.kotlin/
+
+# --- Dossiers build de tous les modules (pas seulement la racine) ---
+build/
+
+# --- Clés de signature : ne jamais publier ---
+*.jks
+*.keystore
+keystore.properties
+
+# --- Binaires générés ---
+*.apk
+*.aab
+
+# --- Journaux et fichiers système ---
+*.log
+Thumbs.db
+
+# Versionnés volontairement (aucune règle ne doit les exclure) :
+#   /specs        spécifications .md des modules
+#   /app/schemas  schémas Room exportés, utiles pour tester les migrations
