@@ -1,0 +1,37 @@
+package com.jb.shoplist
+
+/** "Aubergine : 3", ou "Aubergine" si la quantité est vide. */
+fun libelleAvecQuantite(titre: String, quantite: String): String {
+    return if (quantite.isNotBlank()) {
+        "$titre : $quantite"
+    } else {
+        titre
+    }
+}
+
+/** Découpe une ligne CSV séparée par ';' en respectant les guillemets. */
+fun parserLigneCsv(ligne: String): List<String> {
+    val result = mutableListOf<String>()
+    val current = StringBuilder()
+    var inQuotes = false
+    var i = 0
+    while (i < ligne.length) {
+        val c = ligne[i]
+        if (c == '"') {
+            if (inQuotes && i + 1 < ligne.length && ligne[i + 1] == '"') {
+                current.append('"')
+                i++
+            } else {
+                inQuotes = !inQuotes
+            }
+        } else if (c == ';' && !inQuotes) {
+            result.add(current.toString())
+            current.setLength(0)
+        } else {
+            current.append(c)
+        }
+        i++
+    }
+    result.add(current.toString())
+    return result
+}

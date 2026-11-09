@@ -1,5 +1,6 @@
 package com.jb.shoplist
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -9,7 +10,9 @@ data class TacheEntity(
     val titre: String,
     val categorie: String,
     val faite: Boolean = false,
-    val ordre: Int = 0
+    val ordre: Int = 0,
+    @ColumnInfo(defaultValue = "")
+    val quantite: String = ""
 )
 
 @Entity(tableName = "categories")

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -75,19 +76,35 @@ fun TodoListTopBar(
                 Text(titre, fontWeight = FontWeight.Bold)
             }
         },
+        navigationIcon = {
+            if (isSearchMode) {
+                IconButton(onClick = onToggleSearchMode) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Quitter la recherche"
+                    )
+                }
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         actions = {
             if (isSearchMode) {
-                IconButton(onClick = {
-                    if (searchTerm.isEmpty()) {
-                        onToggleSearchMode()
-                    } else {
-                        onSearchTermChange("")
+                if (searchTerm.isNotEmpty()) {
+                    IconButton(onClick = { onSearchTermChange("") }) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Effacer la recherche",
+                            tint = Color.White
+                        )
                     }
-                }) {
-                    Icon(Icons.Default.Close, contentDescription = "Fermer la recherche")
+                }
+                IconButton(onClick = onToggleAfficherFaites) {
+                    Icon(
+                        imageVector = if (afficherFaites) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = if (afficherFaites) "Masquer les tâches faites" else "Afficher toutes les tâches"
+                    )
                 }
             } else {
                 IconButton(

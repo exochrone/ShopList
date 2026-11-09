@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jb.shoplist.CategorieEntity
 import com.jb.shoplist.TacheEntity
+import com.jb.shoplist.libelleAvecQuantite
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +56,7 @@ fun PartagerScreen(
                     }
                     tachesAffichees.forEach { tache ->
                         val prefixe = if (masquerCategories) "" else "    "
-                        appendLine("$prefixe${tache.titre}")
+                        appendLine("$prefixe${libelleAvecQuantite(tache.titre, tache.quantite)}")
                     }
                 }
             }

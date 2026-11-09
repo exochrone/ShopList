@@ -9,14 +9,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -28,6 +27,7 @@ import com.jb.shoplist.CategorieEntity
 import com.jb.shoplist.EtatRestauration
 import com.jb.shoplist.TacheEntity
 import com.jb.shoplist.TodoUiState
+import com.jb.shoplist.ui.components.ProduitEditionDialog
 import com.jb.shoplist.ui.components.SaisieDialog
 import com.jb.shoplist.ui.components.TacheItem
 import sh.calvin.reorderable.ReorderableItem
@@ -44,10 +44,11 @@ fun TodoListScreen(
     onAnnulerDernierCochage: () -> Unit,
     onAjouterTache: (String, String) -> Unit,
     onBasculerFait: (TacheEntity) -> Unit,
-    onModifierTitreTache: (TacheEntity, String) -> Unit,
+    onModifierProduit: (TacheEntity, String, String, String) -> Unit,
     onSupprimerTache: (TacheEntity) -> Unit,
     onReordonnerTaches: (List<TacheEntity>) -> Unit,
     onAjouterCategorie: (String) -> Unit,
+    onRenommerCategorie: (CategorieEntity, String) -> Unit,
     onModifierTitreListe: (String) -> Unit,
     onToggleCategorieRepliee: (CategorieEntity) -> Unit,
     onOuvrirCategories: () -> Unit,
@@ -56,6 +57,9 @@ fun TodoListScreen(
     onToutCocher: () -> Unit,
     onBasculerAfficherFaites: (Boolean) -> Unit,
     onSetTermeRecherche: (String) -> Unit,
+    onTrierTachesParAlpha: (String) -> Unit,
+    onModifierCouleurCategorie: (CategorieEntity, Long) -> Unit,
+    onSupprimerCategorie: (CategorieEntity) -> Unit,
     onSauvegardeComplete: (Uri) -> Unit,
     etatRestauration: EtatRestauration,
     onLireFichierSauvegarde: (Uri) -> Unit,
@@ -78,6 +82,11 @@ fun TodoListScreen(
     var categorieCibleAjout by remember { mutableStateOf<String?>(null) }
 
     var tacheEnEdition by remember { mutableStateOf<TacheEntity?>(null) }
+
+    var menuOuvertPourCategorie by remember { mutableStateOf<CategorieEntity?>(null) }
+    var categoriePourCouleur by remember { mutableStateOf<CategorieEntity?>(null) }
+    var categorieASupprimer by remember { mutableStateOf<Pair<CategorieEntity, Int>?>(null) }
+    var categorieARenommer by remember { mutableStateOf<CategorieEntity?>(null) }
 
     val launcherImport = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -249,17 +258,71 @@ fun TodoListScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f)
                                 )
-                                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                                    IconButton(
-                                        onClick = {
-                                            categorieCibleAjout = ligne.categorie.nom
-                                        },
-                                        modifier = Modifier.size(32.dp)
+                                Box {
+                                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                                        IconButton(
+                                            onClick = {
+                                                menuOuvertPourCategorie = ligne.categorie
+                                            },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.MoreVert,
+                                                contentDescription = "Options de la catégorie ${ligne.categorie.nom}",
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                    DropdownMenu(
+                                        expanded = menuOuvertPourCategorie == ligne.categorie,
+                                        onDismissRequest = { menuOuvertPourCategorie = null }
                                     ) {
-                                        Icon(
-                                            Icons.Default.Add,
-                                            contentDescription = "Ajouter une tâche dans ${ligne.categorie.nom}",
-                                            modifier = Modifier.size(20.dp)
+                                        val nbTaches = uiState.taches.count { it.categorie == ligne.categorie.nom }
+                                        DropdownMenuItem(
+                                            text = { Text("$nbTaches élément${if (nbTaches > 1) "s" else ""}") },
+                                            onClick = { },
+                                            enabled = false
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Ajout d'élément") },
+                                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                            onClick = {
+                                                menuOuvertPourCategorie = null
+                                                categorieCibleAjout = ligne.categorie.nom
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Tri alphabétique") },
+                                            leadingIcon = { Icon(Icons.Default.SortByAlpha, contentDescription = null) },
+                                            onClick = {
+                                                menuOuvertPourCategorie = null
+                                                onTrierTachesParAlpha(ligne.categorie.nom)
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Modifier la catégorie") },
+                                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                            onClick = {
+                                                menuOuvertPourCategorie = null
+                                                categorieARenommer = ligne.categorie
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Choix de la couleur") },
+                                            leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
+                                            onClick = {
+                                                menuOuvertPourCategorie = null
+                                                categoriePourCouleur = ligne.categorie
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Supprimer") },
+                                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red) },
+                                            onClick = {
+                                                menuOuvertPourCategorie = null
+                                                val nbTaches = uiState.taches.count { it.categorie == ligne.categorie.nom }
+                                                categorieASupprimer = ligne.categorie to nbTaches
+                                            }
                                         )
                                     }
                                 }
@@ -433,30 +496,75 @@ fun TodoListScreen(
     }
 
     tacheEnEdition?.let { tache ->
-        SaisieDialog(
-            titre = "Modifier la tâche",
-            valeurInitiale = tache.titre,
-            placeholder = "Nom de la tâche",
-            onCheckErreur = { titre ->
+        ProduitEditionDialog(
+            tache = tache,
+            categories = uiState.categories,
+            onCheckErreurTitre = { titre ->
                 val tacheExistante = uiState.taches.find {
                     it.id != tache.id &&
                     it.titre.lowercase().trim() == titre.lowercase().trim()
                 }
                 if (tacheExistante != null) "Cet élément existe déjà dans la catégorie ${tacheExistante.categorie}" else null
             },
-            onValider = { titre ->
-                onModifierTitreTache(tache, titre)
+            onValider = { nouveauTitre, nouvelleQuantite, nouvelleCategorie ->
+                onModifierProduit(tache, nouveauTitre, nouvelleQuantite, nouvelleCategorie)
                 tacheEnEdition = null
             },
-            onAnnuler = { tacheEnEdition = null },
-            actionsSupplementaires = {
+            onSupprimer = {
+                onSupprimerTache(tache)
+                tacheEnEdition = null
+            },
+            onFermer = {
+                tacheEnEdition = null
+            }
+        )
+    }
+
+    if (categoriePourCouleur != null) {
+        com.jb.shoplist.ui.components.ColorPickerDialog(
+            onDismiss = { categoriePourCouleur = null },
+            onColorSelected = { couleur ->
+                categoriePourCouleur?.let { onModifierCouleurCategorie(it, couleur.toArgb().toLong()) }
+                categoriePourCouleur = null
+            }
+        )
+    }
+
+    categorieARenommer?.let { cat ->
+        SaisieDialog(
+            titre = "Modifier la catégorie",
+            valeurInitiale = cat.nom,
+            placeholder = "Nom de la catégorie",
+            onCheckErreur = { nom ->
+                val existeDeja = uiState.categories.any { it.nom.lowercase().trim() == nom.lowercase().trim() && it.nom != cat.nom }
+                if (existeDeja) "Cette catégorie existe déjà" else null
+            },
+            onValider = { nom ->
+                onRenommerCategorie(cat, nom)
+                categorieARenommer = null
+            },
+            onAnnuler = { categorieARenommer = null }
+        )
+    }
+
+    categorieASupprimer?.let { (cat, nb) ->
+        AlertDialog(
+            onDismissRequest = { categorieASupprimer = null },
+            title = { Text("Confirmation de suppression") },
+            text = {
+                Text("$nb tâche${if (nb > 1) "s" else ""} dans la catégorie ${cat.nom} seront supprimées avec la catégorie. Voulez-vous continuer ?")
+            },
+            confirmButton = {
                 TextButton(
                     onClick = {
-                        onSupprimerTache(tache)
-                        tacheEnEdition = null
+                        onSupprimerCategorie(cat)
+                        categorieASupprimer = null
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                ) { Text("Supprimer") }
+                ) { Text("Oui") }
+            },
+            dismissButton = {
+                TextButton(onClick = { categorieASupprimer = null }) { Text("Non") }
             }
         )
     }

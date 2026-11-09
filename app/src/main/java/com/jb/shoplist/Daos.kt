@@ -35,6 +35,9 @@ interface TacheDao {
     @Query("SELECT * FROM taches WHERE titre = :titre AND categorie = :categorie LIMIT 1")
     suspend fun trouverParTitreEtCategorie(titre: String, categorie: String): TacheEntity?
 
+    @Query("SELECT MAX(ordre) FROM taches WHERE categorie = :categorie")
+    suspend fun obtenirOrdreMaxParCategorie(categorie: String): Int?
+
     @Query("SELECT MAX(ordre) FROM taches")
     suspend fun obtenirOrdreMax(): Int?
 

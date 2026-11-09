@@ -23,7 +23,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 private const val UNDO_STACK_MAX_SIZE = 10
-private const val FORMAT_VERSION_BACKUP = 1
+private const val FORMAT_VERSION_BACKUP = 2
 
 sealed class ActionAnnulable {
     abstract val message: String
@@ -215,9 +215,35 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun modifierTitreTache(tache: TacheEntity, nouveauTitre: String) {
+    fun modifierProduit(
+        tache: TacheEntity,
+        nouveauTitre: String,
+        nouvelleQuantite: String,
+        nouvelleCategorie: String
+    ) {
         viewModelScope.launch {
-            tacheDao.mettreAJour(tache.copy(titre = nouveauTitre))
+            try {
+                val titreNettoye = nouveauTitre.trim()
+                val quantiteNettoyee = nouvelleQuantite.trim()
+
+                val nouvelOrdre = if (tache.categorie != nouvelleCategorie) {
+                    (tacheDao.obtenirOrdreMaxParCategorie(nouvelleCategorie) ?: -1) + 1
+                } else {
+                    tache.ordre
+                }
+
+                tacheDao.mettreAJour(
+                    tache.copy(
+                        titre = titreNettoye,
+                        quantite = quantiteNettoyee,
+                        categorie = nouvelleCategorie,
+                        ordre = nouvelOrdre
+                    )
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _evenements.emit("Erreur lors de la modification du produit : ${e.message}")
+            }
         }
     }
 
@@ -338,10 +364,11 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                     var ordreMaxTache = tacheDao.obtenirOrdreMax() ?: -1
 
                     lignes.forEach { ligne ->
-                        val colonnes = ligne.split(";")
+                        val colonnes = parserLigneCsv(ligne)
                         if (colonnes.size >= 2) {
                             val nomCat = colonnes[0].trim()
                             val titreTache = colonnes[1].trim()
+                            val quantiteImportee = if (colonnes.size >= 3) colonnes[2].trim() else ""
 
                             if (nomCat.isNotBlank() && titreTache.isNotBlank()) {
                                 // 1. Gérer la catégorie
@@ -359,8 +386,13 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                                         TacheEntity(
                                             titre = titreTache,
                                             categorie = nomCat,
-                                            ordre = ordreMaxTache
+                                            ordre = ordreMaxTache,
+                                            quantite = quantiteImportee
                                         )
+                                    )
+                                } else if (quantiteImportee.isNotBlank()) {
+                                    tacheDao.mettreAJour(
+                                        tacheExistante.copy(quantite = quantiteImportee)
                                     )
                                 }
                             }
@@ -391,7 +423,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                                 writer.newLine()
                             } else {
                                 tachesCat.forEach { tache ->
-                                    writer.write("${escapeCsv(cat.nom)};${escapeCsv(tache.titre)}")
+                                    writer.write("${escapeCsv(cat.nom)};${escapeCsv(tache.titre)};${escapeCsv(tache.quantite)}")
                                     writer.newLine()
                                 }
                             }
@@ -483,9 +515,9 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         if (formatVersion == -1) {
             throw SauvegardeInvalideException("Champ formatVersion manquant")
         }
-        if (formatVersion != FORMAT_VERSION_BACKUP) {
+        if (formatVersion != 1 && formatVersion != 2) {
             throw SauvegardeInvalideException(
-                "Version de format non supportée : $formatVersion (attendu : $FORMAT_VERSION_BACKUP)"
+                "Version de format non supportée : $formatVersion (attendu : 1 ou 2)"
             )
         }
 
@@ -534,13 +566,15 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                     "Tâche \"$titre\" référence une catégorie inconnue : $categorie"
                 )
             }
+            val quantite = obj.optString("quantite", "")
             taches.add(
                 TacheEntity(
                     id = 0,  // sera regénéré par Room
                     titre = titre,
                     categorie = categorie,
                     faite = obj.optBoolean("faite", false),
-                    ordre = obj.optInt("ordre", 0)
+                    ordre = obj.optInt("ordre", 0),
+                    quantite = quantite
                 )
             )
         }
@@ -651,6 +685,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                     put("categorie", tache.categorie)
                     put("faite", tache.faite)
                     put("ordre", tache.ordre)
+                    put("quantite", tache.quantite)
                 })
             }
         }
