@@ -112,4 +112,115 @@ class ProduitEditionDialogTest {
         assertTrue(fermerAppele)
         assertFalse(validerAppele)
     }
+
+    @Test
+    fun testModeAjoutAfficheTitreEtBoutons() {
+        composeTestRule.setContent {
+            ProduitEditionDialog(
+                tache = null,
+                categories = categories,
+                categorieInitiale = "Frais",
+                onCheckErreurTitre = { null },
+                onValider = { _, _, _ -> },
+                onFermer = { }
+            )
+        }
+
+        composeTestRule.onNodeWithText("Nouveau produit").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Ajouter").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Frais").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Supprimer").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Valider").assertDoesNotExist()
+    }
+
+    @Test
+    fun testModeAjoutAjouterDesactiveQuandNomVide() {
+        composeTestRule.setContent {
+            ProduitEditionDialog(
+                tache = null,
+                categories = categories,
+                categorieInitiale = "Frais",
+                onCheckErreurTitre = { null },
+                onValider = { _, _, _ -> },
+                onFermer = { }
+            )
+        }
+
+        composeTestRule.onNodeWithText("Ajouter").assertIsNotEnabled()
+    }
+
+    @Test
+    fun testModeAjoutAppelleOnValiderAvecValeursNettoyees() {
+        var titreRecu = ""
+        var quantiteRecue = ""
+        var catRecue = ""
+
+        composeTestRule.setContent {
+            ProduitEditionDialog(
+                tache = null,
+                categories = categories,
+                categorieInitiale = "Frais",
+                onCheckErreurTitre = { null },
+                onValider = { t, q, c ->
+                    titreRecu = t
+                    quantiteRecue = q
+                    catRecue = c
+                },
+                onFermer = { }
+            )
+        }
+
+        composeTestRule.onNodeWithText("Nom du produit").performTextInput(" Lait ")
+        composeTestRule.onNodeWithText("Quantité (facultatif)").performTextInput(" 1 L ")
+        composeTestRule.onNodeWithText("Ajouter").performClick()
+
+        assertEquals("Lait", titreRecu)
+        assertEquals("1 L", quantiteRecue)
+        assertEquals("Frais", catRecue)
+    }
+
+    @Test
+    fun testModeAjoutChangementCategorie() {
+        var catRecue = ""
+
+        composeTestRule.setContent {
+            ProduitEditionDialog(
+                tache = null,
+                categories = categories,
+                categorieInitiale = "Frais",
+                onCheckErreurTitre = { null },
+                onValider = { _, _, c -> catRecue = c },
+                onFermer = { }
+            )
+        }
+
+        composeTestRule.onNodeWithText("Frais").performClick()
+        composeTestRule.onNodeWithText("Épicerie").performClick()
+        composeTestRule.onNodeWithText("Nom du produit").performTextInput("Riz")
+        composeTestRule.onNodeWithText("Ajouter").performClick()
+
+        assertEquals("Épicerie", catRecue)
+    }
+
+    @Test
+    fun testModeAjoutCroixFermetureAppelleOnFermer() {
+        var fermerAppele = false
+        var validerAppele = false
+
+        composeTestRule.setContent {
+            ProduitEditionDialog(
+                tache = null,
+                categories = categories,
+                categorieInitiale = "Frais",
+                onCheckErreurTitre = { null },
+                onValider = { _, _, _ -> validerAppele = true },
+                onFermer = { fermerAppele = true }
+            )
+        }
+
+        composeTestRule.onNodeWithContentDescription("Fermer").performClick()
+
+        assertTrue(fermerAppele)
+        assertFalse(validerAppele)
+    }
 }

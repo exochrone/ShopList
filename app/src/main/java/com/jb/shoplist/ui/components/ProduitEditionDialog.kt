@@ -25,16 +25,19 @@ import com.jb.shoplist.TacheEntity
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProduitEditionDialog(
-    tache: TacheEntity,
+    tache: TacheEntity?,
     categories: List<CategorieEntity>,
+    categorieInitiale: String = tache?.categorie ?: "",
     onCheckErreurTitre: (String) -> String?,
     onValider: (titre: String, quantite: String, categorie: String) -> Unit,
-    onSupprimer: () -> Unit,
+    onSupprimer: () -> Unit = {},
     onFermer: () -> Unit
 ) {
-    var titre by rememberSaveable { mutableStateOf(tache.titre) }
-    var quantite by rememberSaveable { mutableStateOf(tache.quantite) }
-    var categorie by rememberSaveable { mutableStateOf(tache.categorie) }
+    val modeAjout = tache == null
+
+    var titre by rememberSaveable { mutableStateOf(tache?.titre ?: "") }
+    var quantite by rememberSaveable { mutableStateOf(tache?.quantite ?: "") }
+    var categorie by rememberSaveable { mutableStateOf(tache?.categorie ?: categorieInitiale) }
     var menuCategoriesOuvert by remember { mutableStateOf(false) }
 
     val focusRequesterTitre = remember { FocusRequester() }
@@ -46,7 +49,8 @@ fun ProduitEditionDialog(
     val erreurTitre = onCheckErreurTitre(titreClean)
     val validerActif = titreClean.isNotEmpty() && erreurTitre == null
 
-    val aModifie = titreClean != tache.titre.trim() ||
+    val aModifie = modeAjout ||
+            titreClean != tache.titre.trim() ||
             quantiteClean != tache.quantite.trim() ||
             categorie != tache.categorie
 
@@ -58,6 +62,10 @@ fun ProduitEditionDialog(
             onFermer()
         }
     }
+
+    val couleurCategorie = categories.find { it.nom == categorie }
+        ?.let { Color(it.couleur) }
+        ?: Color.Unspecified
 
     LaunchedEffect(Unit) {
         focusRequesterTitre.requestFocus()
@@ -87,7 +95,7 @@ fun ProduitEditionDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Modifier le produit",
+                        text = if (modeAjout) "Nouveau produit" else "Modifier le produit",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -109,6 +117,7 @@ fun ProduitEditionDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Catégorie") },
+                        textStyle = LocalTextStyle.current.copy(color = couleurCategorie),
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuCategoriesOuvert) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -120,7 +129,7 @@ fun ProduitEditionDialog(
                     ) {
                         categories.sortedBy { it.ordre }.forEach { cat ->
                             DropdownMenuItem(
-                                text = { Text(cat.nom) },
+                                text = { Text(cat.nom, color = Color(cat.couleur)) },
                                 onClick = {
                                     categorie = cat.nom
                                     menuCategoriesOuvert = false
@@ -193,22 +202,37 @@ fun ProduitEditionDialog(
                 )
 
                 // Ligne de boutons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(
-                        onClick = onSupprimer,
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                if (modeAjout) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Supprimer")
+                        TextButton(
+                            onClick = { executerValidation() },
+                            enabled = validerActif
+                        ) {
+                            Text("Ajouter")
+                        }
                     }
-                    TextButton(
-                        onClick = { executerValidation() },
-                        enabled = validerActif
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Valider")
+                        TextButton(
+                            onClick = onSupprimer,
+                            colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                        ) {
+                            Text("Supprimer")
+                        }
+                        TextButton(
+                            onClick = { executerValidation() },
+                            enabled = validerActif
+                        ) {
+                            Text("Valider")
+                        }
                     }
                 }
             }

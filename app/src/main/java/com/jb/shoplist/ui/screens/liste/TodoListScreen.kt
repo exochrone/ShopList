@@ -42,7 +42,7 @@ fun TodoListScreen(
     actionAnnulable: ActionAnnulable?,
     pileCochagesNonVide: Boolean,
     onAnnulerDernierCochage: () -> Unit,
-    onAjouterTache: (String, String) -> Unit,
+    onAjouterTache: (titre: String, categorie: String, quantite: String) -> Unit,
     onBasculerFait: (TacheEntity) -> Unit,
     onModifierProduit: (TacheEntity, String, String, String) -> Unit,
     onSupprimerTache: (TacheEntity) -> Unit,
@@ -477,21 +477,21 @@ fun TodoListScreen(
     }
 
     categorieCibleAjout?.let { categorie ->
-        SaisieDialog(
-            titre = "Nouvelle tâche dans « $categorie »",
-            placeholder = "Nom de la tâche",
-            libelleValider = "Ajouter",
-            onCheckErreur = { titre ->
+        ProduitEditionDialog(
+            tache = null,
+            categories = uiState.categories,
+            categorieInitiale = categorie,
+            onCheckErreurTitre = { titre ->
                 val tacheExistante = uiState.taches.find {
                     it.titre.lowercase().trim() == titre.lowercase().trim()
                 }
                 if (tacheExistante != null) "Cet élément existe déjà dans la catégorie ${tacheExistante.categorie}" else null
             },
-            onValider = { titre ->
-                onAjouterTache(titre, categorie)
+            onValider = { titre, quantite, cat ->
+                onAjouterTache(titre, cat, quantite)
                 categorieCibleAjout = null
             },
-            onAnnuler = { categorieCibleAjout = null }
+            onFermer = { categorieCibleAjout = null }
         )
     }
 

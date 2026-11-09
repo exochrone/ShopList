@@ -162,16 +162,22 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         _termeRecherche.value = terme
     }
 
-    fun ajouterTache(titre: String, categorie: String) {
+    fun ajouterTache(titre: String, categorie: String, quantite: String) {
         viewModelScope.launch {
-            val tachesExistantes = tacheDao.compterParCategorie(categorie)
-            tacheDao.inserer(
-                TacheEntity(
-                    titre = titre,
-                    categorie = categorie,
-                    ordre = tachesExistantes
+            try {
+                val ordre = (tacheDao.obtenirOrdreMaxParCategorie(categorie) ?: -1) + 1
+                tacheDao.inserer(
+                    TacheEntity(
+                        titre = titre.trim(),
+                        categorie = categorie,
+                        quantite = quantite.trim(),
+                        ordre = ordre
+                    )
                 )
-            )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _evenements.emit("Erreur lors de l'ajout du produit : ${e.message}")
+            }
         }
     }
 
