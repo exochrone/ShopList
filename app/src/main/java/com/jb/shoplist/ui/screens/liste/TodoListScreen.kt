@@ -267,7 +267,11 @@ fun TodoListScreen(
                 key = { lignes[it].cleUnique }
             ) { index ->
                 val ligne = lignes[index]
-                ReorderableItem(reorderableState, key = ligne.cleUnique) { isDragging ->
+                ReorderableItem(
+                    reorderableState,
+                    key = ligne.cleUnique,
+                    animateItemModifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)
+                ) { isDragging ->
                     when (ligne) {
                         is LigneAffichee.Header -> {
                             Row(
