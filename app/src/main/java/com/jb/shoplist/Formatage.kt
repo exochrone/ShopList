@@ -1,5 +1,20 @@
 package com.jb.shoplist
 
+import java.text.Collator
+import java.util.Locale
+
+/**
+ * Comparateur alphabétique français : lettres accentuées rangées avec
+ * leur lettre de base, casse ignorée au premier niveau.
+ * Une nouvelle instance de Collator est créée à chaque appel
+ * (Collator n'est pas garanti thread-safe).
+ */
+fun comparateurAlphabetique(): Comparator<String> {
+    val collator = Collator.getInstance(Locale.FRENCH)
+    collator.strength = Collator.TERTIARY
+    return Comparator { a, b -> collator.compare(a, b) }
+}
+
 /** "Aubergine : 3", ou "Aubergine" si la quantité est vide. */
 fun libelleAvecQuantite(titre: String, quantite: String): String {
     return if (quantite.isNotBlank()) {

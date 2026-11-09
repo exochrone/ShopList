@@ -275,7 +275,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
             val toutesLesTaches = uiState.value.taches.toMutableList()
             // On extrait les tâches de la catégorie et on les trie
             val tachesDeLaCat = toutesLesTaches.filter { it.categorie == nomCategorie }
-                .sortedBy { it.titre.lowercase() }
+                .sortedWith(compareBy(comparateurAlphabetique()) { it.titre })
 
             // On reconstruit la liste complète en remplaçant les tâches de la catégorie par les triées
             var indexTriee = 0

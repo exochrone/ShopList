@@ -26,4 +26,39 @@ class FormatageTest {
         val resultat = parserLigneCsv(ligne)
         assertEquals(listOf("Épicerie", "Riz; basmati", "2 \"gros\" sacs"), resultat)
     }
+
+    @Test
+    fun comparateurAlphabetique_rangeLesAccentsAvecLaLettreDeBase() {
+        val entres = listOf("Tomates", "Épinards", "Carottes", "Échalotes", "Endives", "Zucchini")
+        val attendu = listOf("Carottes", "Échalotes", "Endives", "Épinards", "Tomates", "Zucchini")
+        assertEquals(attendu, entres.sortedWith(comparateurAlphabetique()))
+    }
+
+    @Test
+    fun comparateurAlphabetique_ignoreLaCasse() {
+        val entres = listOf("banane", "Ananas", "carotte")
+        val attendu = listOf("Ananas", "banane", "carotte")
+        assertEquals(attendu, entres.sortedWith(comparateurAlphabetique()))
+    }
+
+    @Test
+    fun comparateurAlphabetique_ligatureOe() {
+        val entres = listOf("Oignons", "Œufs", "Navets", "Poireaux")
+        val attendu = listOf("Navets", "Œufs", "Oignons", "Poireaux")
+        assertEquals(attendu, entres.sortedWith(comparateurAlphabetique()))
+    }
+
+    @Test
+    fun comparateurAlphabetique_accentsMajusculesEtMinuscules() {
+        val entres = listOf("Fraises", "Élan", "Dattes", "écrou", "Eau")
+        val resultat = entres.sortedWith(comparateurAlphabetique())
+        assertEquals(listOf("Dattes", "Eau", "écrou", "Élan", "Fraises"), resultat)
+    }
+
+    @Test
+    fun comparateurAlphabetique_motsNeDifferantQueParUnAccent() {
+        val entres = listOf("Pâte", "Pate", "Orange", "Radis")
+        val resultat = entres.sortedWith(comparateurAlphabetique())
+        assertEquals(listOf("Orange", "Pate", "Pâte", "Radis"), resultat)
+    }
 }

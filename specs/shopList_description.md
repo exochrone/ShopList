@@ -71,6 +71,7 @@ Menu ⋮ d'une catégorie, « Ajout d'élément », puis dialogue **« Nouveau p
 Comportement :
 
 * Le focus est sur le nom à l'ouverture. Clavier : « Suivant » passe du nom à la quantité, « OK » ajoute.
+* Le clavier propose une majuscule en début de saisie pour le nom et la quantité. Le texte saisi n'est pas modifié par l'application.
 * **Ajouter** est désactivé si le nom est vide ou déjà utilisé : le nom doit être unique dans **toute** la liste (comparaison sans tenir compte de la casse ni des espaces en début et fin), sinon message « Cet élément existe déjà dans la catégorie X ».
 * Le produit est créé avec le nom et la quantité nettoyés (espaces de début et fin supprimés ; quantité vide si non renseignée), non coché, **en fin de la catégorie choisie**. Le dialogue se ferme, sans Toast ni snackbar.
 * **Fermer sans ajouter** : croix en haut à droite, ou geste / bouton Retour du système Android. Un toucher hors du dialogue ne le ferme pas.
@@ -88,6 +89,7 @@ Toucher le texte d'un produit ouvre le dialogue **« Modifier le produit »** :
 Comportement :
 
 * Le focus est sur le nom à l'ouverture. Clavier : « Suivant » passe du nom à la quantité, « OK » valide.
+* Le clavier propose une majuscule en début de saisie pour le nom et la quantité. Le texte saisi n'est pas modifié par l'application.
 * **Valider** est désactivé si le nom est vide ou déjà utilisé par un autre produit (même règle d'unicité que pour l'ajout, message « Cet élément existe déjà dans la catégorie X »).
 * À la validation, le nom et la quantité sont nettoyés (espaces de début et fin supprimés). Si rien n'a changé, le dialogue se ferme sans écriture en base.
 * **Changement de catégorie** : le produit est placé en fin de la catégorie choisie ; son état coché et sa quantité sont conservés.
@@ -344,6 +346,7 @@ Principales fonctions publiques : `ajouterTache`, `basculerFait`, `annulerDernie
   * `tache == null` : **mode ajout** (titre « Nouveau produit », champs vides, catégorie = `categorieInitiale`, bouton unique « Ajouter » aligné à droite, `onValider` toujours appelé). Sinon **mode modification** (titre « Modifier le produit », champs préremplis, boutons « Supprimer » et « Valider », pas d'écriture si rien n'a changé).
   * `Dialog` + `Surface` avec `DialogProperties(dismissOnClickOutside = false, dismissOnBackPress = true)`, `ExposedDropdownMenuBox` pour la catégorie, deux `OutlinedTextField` avec croix d'effacement, état local en `rememberSaveable`.
   * Couleur des catégories : éléments du menu en `Color(cat.couleur)`, champ Catégorie via `textStyle` dans la couleur de la catégorie sélectionnée (`Color.Unspecified` si introuvable).
+  * Les deux `OutlinedTextField` utilisent `KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = …)` (`Next` pour le nom, `Done` pour la quantité). Aucune mise en majuscule n'est faite par le code.
 * **Menu des catégories** : `DropdownMenu` ancré sur le bouton ⋮ de chaque en-tête dans `TodoListScreen`, qui réutilise les fonctions du ViewModel (`trierTachesParAlpha`, `renommerCategorie`, `modifierCouleurCategorie`, `supprimerCategorie`) ainsi que `SaisieDialog` et `ColorPickerDialog`. « Ajout d'élément » renseigne `categorieCibleAjout`, qui ouvre `ProduitEditionDialog(tache = null, categorieInitiale = …)`.
 * **Glisser-déposer** : bibliothèque Reorderable (`rememberReorderableLazyListState`, `ReorderableItem`, `longPressDraggableHandle`). Déposer un produit sur un en-tête ou un produit d'une autre catégorie change sa catégorie ; la liste complète est réordonnée puis enregistrée.
 * **Dialogues** : `SaisieDialog` est le dialogue générique (titre, champ unique, placeholder, validation avec message d'erreur, actions supplémentaires comme Supprimer), utilisé pour l'ajout et le renommage de catégorie et le renommage de la liste. Il ne sert plus pour les produits. Les confirmations utilisent `AlertDialog`.
