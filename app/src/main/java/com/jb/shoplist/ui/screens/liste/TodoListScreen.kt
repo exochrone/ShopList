@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -288,7 +290,21 @@ fun TodoListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .then(
+                    if (modeRecherche) Modifier.pointerInput(Unit) {
+                        detectTapGestures(onTap = { position ->
+                            val info = lazyListState.layoutInfo
+                            val dernier = info.visibleItemsInfo.lastOrNull()
+                            if (dernier != null &&
+                                dernier.index == info.totalItemsCount - 1 &&
+                                position.y > dernier.offset + dernier.size
+                            ) {
+                                quitterRecherche()
+                            }
+                        })
+                    } else Modifier
+                ),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             items(
