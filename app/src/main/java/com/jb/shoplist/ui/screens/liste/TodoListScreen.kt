@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -71,8 +73,19 @@ fun TodoListScreen(
     onConsommerErreurRestauration: () -> Unit
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     var modeRecherche by remember { mutableStateOf(false) }
+    var cibleDefilement by remember { mutableStateOf<CibleDefilement?>(null) }
+
+    fun quitterRecherche(cible: CibleDefilement? = null) {
+        focusManager.clearFocus()
+        keyboardController?.hide()
+        modeRecherche = false
+        onSetTermeRecherche("")
+        cibleDefilement = cible
+    }
 
     var idTacheGlissee by remember { mutableStateOf<Int?>(null) }
     var categorieOrigineGlissement by remember { mutableStateOf<String?>(null) }
@@ -110,8 +123,7 @@ fun TodoListScreen(
     }
 
     BackHandler(enabled = modeRecherche) {
-        modeRecherche = false
-        onSetTermeRecherche("")
+        quitterRecherche()
     }
     var afficherDialogCategorie by remember { mutableStateOf(false) }
 
@@ -183,6 +195,24 @@ fun TodoListScreen(
     }
 
     val lazyListState = rememberLazyListState()
+
+    LaunchedEffect(lignes, cibleDefilement) {
+        val cible = cibleDefilement ?: return@LaunchedEffect
+        if (uiState.termeRecherche.isNotEmpty()) return@LaunchedEffect
+        var index = lignes.indexOfFirst { it.cleUnique == cible.cle }
+        if (index == -1 && cible.cleRepli != null) {
+            index = lignes.indexOfFirst { it.cleUnique == cible.cleRepli }
+        }
+        if (index != -1) {
+            val info = lazyListState.layoutInfo
+            val visible = info.visibleItemsInfo.firstOrNull { it.index == index }
+            val entierementVisible = visible != null &&
+                visible.offset >= info.viewportStartOffset &&
+                visible.offset + visible.size <= info.viewportEndOffset
+            if (!entierementVisible) lazyListState.scrollToItem(index)
+        }
+        cibleDefilement = null
+    }
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
         val itemDeplace = lignes[from.index]
         val cible = lignes[to.index]
@@ -245,8 +275,7 @@ fun TodoListScreen(
                 onRestaurerSauvegarde = { afficherDialogPreRestauration = true },
                 isSearchMode = modeRecherche,
                 onToggleSearchMode = {
-                    modeRecherche = !modeRecherche
-                    if (!modeRecherche) onSetTermeRecherche("")
+                    if (modeRecherche) quitterRecherche() else modeRecherche = true
                 },
                 searchTerm = uiState.termeRecherche,
                 onSearchTermChange = onSetTermeRecherche
@@ -279,7 +308,10 @@ fun TodoListScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 4.dp)
-                                    .clickable { onToggleCategorieRepliee(ligne.categorie) }
+                                    .clickable {
+                                        if (modeRecherche) quitterRecherche(CibleDefilement(ligne.cleUnique, null))
+                                        onToggleCategorieRepliee(ligne.categorie)
+                                    }
                             ) {
                                 Icon(
                                     imageVector = if (ligne.categorie.repliee) Icons.Default.ChevronRight else Icons.Default.ExpandMore,
@@ -333,6 +365,7 @@ fun TodoListScreen(
                                             leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                                             onClick = {
                                                 menuOuvertPourCategorie = null
+                                                if (modeRecherche) quitterRecherche(CibleDefilement(ligne.cleUnique, null))
                                                 categorieCibleAjout = ligne.categorie.nom
                                             }
                                         )
@@ -341,6 +374,7 @@ fun TodoListScreen(
                                             leadingIcon = { Icon(Icons.Default.SortByAlpha, contentDescription = null) },
                                             onClick = {
                                                 menuOuvertPourCategorie = null
+                                                if (modeRecherche) quitterRecherche(CibleDefilement(ligne.cleUnique, null))
                                                 onTrierTachesParAlpha(ligne.categorie.nom)
                                             }
                                         )
@@ -349,6 +383,7 @@ fun TodoListScreen(
                                             leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
                                             onClick = {
                                                 menuOuvertPourCategorie = null
+                                                if (modeRecherche) quitterRecherche(CibleDefilement(ligne.cleUnique, null))
                                                 categorieARenommer = ligne.categorie
                                             }
                                         )
@@ -357,6 +392,7 @@ fun TodoListScreen(
                                             leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
                                             onClick = {
                                                 menuOuvertPourCategorie = null
+                                                if (modeRecherche) quitterRecherche(CibleDefilement(ligne.cleUnique, null))
                                                 categoriePourCouleur = ligne.categorie
                                             }
                                         )
@@ -365,6 +401,7 @@ fun TodoListScreen(
                                             leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red) },
                                             onClick = {
                                                 menuOuvertPourCategorie = null
+                                                if (modeRecherche) quitterRecherche(CibleDefilement(ligne.cleUnique, null))
                                                 val nbTaches = uiState.taches.count { it.categorie == ligne.categorie.nom }
                                                 categorieASupprimer = ligne.categorie to nbTaches
                                             }
@@ -389,6 +426,9 @@ fun TodoListScreen(
                                 tache = ligne.tache,
                                 onCheckedChange = { onBasculerFait(ligne.tache) },
                                 onClickTache = {
+                                    if (modeRecherche) quitterRecherche(
+                                        CibleDefilement("tache_${ligne.tache.id}", "header_${ligne.tache.categorie}")
+                                    )
                                     tacheEnEdition = ligne.tache
                                 },
                                 modifier = Modifier
@@ -623,6 +663,11 @@ fun TodoListScreen(
         )
     }
 }
+
+private data class CibleDefilement(
+    val cle: String,
+    val cleRepli: String?
+)
 
 private fun String.sansAccents(): String {
     val temp = Normalizer.normalize(this, Normalizer.Form.NFD)

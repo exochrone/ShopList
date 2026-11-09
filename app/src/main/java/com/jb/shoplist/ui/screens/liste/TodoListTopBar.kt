@@ -100,12 +100,6 @@ fun TodoListTopBar(
                         )
                     }
                 }
-                IconButton(onClick = onToggleAfficherFaites) {
-                    Icon(
-                        imageVector = if (afficherFaites) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (afficherFaites) "Masquer les tâches faites" else "Afficher toutes les tâches"
-                    )
-                }
             } else {
                 IconButton(
                     onClick = onAnnulerCochage,
