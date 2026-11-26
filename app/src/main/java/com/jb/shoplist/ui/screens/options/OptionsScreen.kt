@@ -230,7 +230,7 @@ fun OptionsScreen(
             text = {
                 Text(
                     "La restauration va remplacer toutes les données actuelles " +
-                            "(catégories, tâches, paramètres). Cette action me est irréversible.\n\n" +
+                            "(catégories, tâches, paramètres). Cette action est irréversible.\n\n" +
                             "Voulez-vous continuer ?"
                 )
             },

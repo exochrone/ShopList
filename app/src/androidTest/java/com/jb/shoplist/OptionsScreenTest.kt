@@ -163,6 +163,31 @@ class OptionsScreenTest {
     }
 
     @Test
+    fun testAffichagePositionBarreBas() {
+        composeTestRule.setContent {
+            OptionsScreen(
+                titreListe = "Courses",
+                versionApp = "2026.04",
+                onModifierTitreListe = {},
+                onOuvrirCategories = {},
+                positionBarre = PositionBarre.BAS,
+                onChangerPositionBarre = {},
+                onImporterCsv = {},
+                onSauvegardeComplete = {},
+                etatRestauration = EtatRestauration.Inactif,
+                onLireFichierSauvegarde = {},
+                onConfirmerRestauration = {},
+                onAnnulerRestauration = {},
+                onConsommerErreurRestauration = {},
+                onRetour = {}
+            )
+        }
+
+        composeTestRule.onNodeWithText("Bas").assertIsSelected()
+        composeTestRule.onNodeWithText("Haut").assertIsNotSelected()
+    }
+
+    @Test
     fun testToucherImporterListeAfficheDialogueCsv() {
         composeTestRule.setContent {
             OptionsScreen(
