@@ -1,10 +1,7 @@
 package com.jb.shoplist.ui.screens.liste
 
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -30,7 +27,7 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.ui.unit.Dp
 import com.jb.shoplist.ActionAnnulable
 import com.jb.shoplist.CategorieEntity
-import com.jb.shoplist.EtatRestauration
+import com.jb.shoplist.PositionBarre
 import com.jb.shoplist.TacheEntity
 import com.jb.shoplist.TodoUiState
 import com.jb.shoplist.categorieReplieeAffichee
@@ -49,6 +46,7 @@ fun TodoListScreen(
     snackbarHostState: SnackbarHostState,
     actionAnnulable: ActionAnnulable?,
     pileCochagesNonVide: Boolean,
+    positionBarre: PositionBarre,
     onAnnulerDernierCochage: () -> Unit,
     onAjouterTache: (titre: String, categorie: String, quantite: String) -> Unit,
     onBasculerFait: (TacheEntity) -> Unit,
@@ -60,19 +58,12 @@ fun TodoListScreen(
     onToggleCategorieRepliee: (CategorieEntity) -> Unit,
     onOuvrirPartage: () -> Unit,
     onOuvrirOptions: () -> Unit,
-    onImporterCsv: (android.net.Uri) -> Unit,
     onToutCocher: () -> Unit,
     onBasculerAfficherFaites: (Boolean) -> Unit,
     onSetTermeRecherche: (String) -> Unit,
     onTrierTachesParAlpha: (String) -> Unit,
     onModifierCouleurCategorie: (CategorieEntity, Long) -> Unit,
-    onSupprimerCategorie: (CategorieEntity) -> Unit,
-    onSauvegardeComplete: (Uri) -> Unit,
-    etatRestauration: EtatRestauration,
-    onLireFichierSauvegarde: (Uri) -> Unit,
-    onConfirmerRestauration: () -> Unit,
-    onAnnulerRestauration: () -> Unit,
-    onConsommerErreurRestauration: () -> Unit
+    onSupprimerCategorie: (CategorieEntity) -> Unit
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -131,8 +122,6 @@ fun TodoListScreen(
     }
     var afficherDialogCategorie by remember { mutableStateOf(false) }
 
-    var afficherDialogImport by remember { mutableStateOf(false) }
-
     var categorieCibleAjout by remember { mutableStateOf<String?>(null) }
 
     var tacheEnEdition by remember { mutableStateOf<TacheEntity?>(null) }
@@ -141,26 +130,6 @@ fun TodoListScreen(
     var categoriePourCouleur by remember { mutableStateOf<CategorieEntity?>(null) }
     var categorieASupprimer by remember { mutableStateOf<Pair<CategorieEntity, Int>?>(null) }
     var categorieARenommer by remember { mutableStateOf<CategorieEntity?>(null) }
-
-    val launcherImport = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: android.net.Uri? ->
-        uri?.let { onImporterCsv(it) }
-    }
-
-    val launcherSauvegardeComplete = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri: Uri? ->
-        uri?.let { onSauvegardeComplete(it) }
-    }
-
-    var afficherDialogPreRestauration by remember { mutableStateOf(false) }
-
-    val launcherRestauration = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let { onLireFichierSauvegarde(it) }
-    }
 
     val lignes: List<LigneAffichee> = remember(uiState.categories, uiState.taches, uiState.afficherFaites, uiState.termeRecherche, categoriesToucheesEnRecherche) {
         val recherche = uiState.termeRecherche.trim().sansAccents().lowercase()
@@ -255,37 +224,32 @@ fun TodoListScreen(
         onReordonnerTaches(nouvelleListe)
     }
 
+    val barre: @Composable () -> Unit = {
+        TodoListTopBar(
+            titre = uiState.titreListe,
+            afficherFaites = uiState.afficherFaites,
+            onToggleAfficherFaites = { onBasculerAfficherFaites(!uiState.afficherFaites) },
+            undoCochageActif = pileCochagesNonVide,
+            onAnnulerCochage = onAnnulerDernierCochage,
+            onOuvrirPartage = onOuvrirPartage,
+            onOuvrirOptions = onOuvrirOptions,
+            onToutCocher = {
+                onBasculerAfficherFaites(true)
+                onToutCocher()
+            },
+            isSearchMode = modeRecherche,
+            onToggleSearchMode = {
+                if (modeRecherche) quitterRecherche() else modeRecherche = true
+            },
+            searchTerm = uiState.termeRecherche,
+            onSearchTermChange = onSetTermeRecherche,
+            enBas = positionBarre == PositionBarre.BAS
+        )
+    }
+
     Scaffold(
-        topBar = {
-            TodoListTopBar(
-                titre = uiState.titreListe,
-                afficherFaites = uiState.afficherFaites,
-                onToggleAfficherFaites = { onBasculerAfficherFaites(!uiState.afficherFaites) },
-                undoCochageActif = pileCochagesNonVide,
-                onAnnulerCochage = onAnnulerDernierCochage,
-                onOuvrirPartage = onOuvrirPartage,
-                onOuvrirOptions = onOuvrirOptions,
-                onOuvrirImport = { afficherDialogImport = true },
-                onToutCocher = {
-                    onBasculerAfficherFaites(true)
-                    onToutCocher()
-                },
-                onSauvegardeComplete = {
-                    val nomFichier = "shopList-Backup-${
-                        java.text.SimpleDateFormat("yyMMdd", java.util.Locale.getDefault())
-                            .format(java.util.Date())
-                    }.json"
-                    launcherSauvegardeComplete.launch(nomFichier)
-                },
-                onRestaurerSauvegarde = { afficherDialogPreRestauration = true },
-                isSearchMode = modeRecherche,
-                onToggleSearchMode = {
-                    if (modeRecherche) quitterRecherche() else modeRecherche = true
-                },
-                searchTerm = uiState.termeRecherche,
-                onSearchTermChange = onSetTermeRecherche
-            )
-        },
+        topBar = { if (positionBarre == PositionBarre.HAUT) barre() },
+        bottomBar = { if (positionBarre == PositionBarre.BAS) barre() },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         LazyColumn(
@@ -330,9 +294,6 @@ fun TodoListScreen(
                                     .clickable {
                                         val rechercheActive = modeRecherche && uiState.termeRecherche.trim().isNotEmpty()
                                         if (rechercheActive) {
-                                            // L'état affiché est inversé et la base est alignée dessus.
-                                            // Si l'affichage diffère de la base (dépliage automatique d'une catégorie
-                                            // repliée en base), le nouvel état affiché est l'état en base : pas d'écriture.
                                             if (ligne.replieeAffichee == ligne.categorie.repliee) {
                                                 onToggleCategorieRepliee(ligne.categorie)
                                             }
@@ -481,94 +442,6 @@ fun TodoListScreen(
                 )
             }
         }
-    }
-
-    // Dialog 1 : avertissement avant ouverture du sélecteur
-    if (afficherDialogPreRestauration) {
-        AlertDialog(
-            onDismissRequest = { afficherDialogPreRestauration = false },
-            title = { Text("Restaurer une sauvegarde") },
-            text = {
-                Text(
-                    "La restauration va remplacer toutes les données actuelles " +
-                            "(catégories, tâches, paramètres). Cette action est irréversible.\n\n" +
-                            "Voulez-vous continuer ?"
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    afficherDialogPreRestauration = false
-                    launcherRestauration.launch(arrayOf("application/json"))
-                }) { Text("Choisir un fichier") }
-            },
-            dismissButton = {
-                TextButton(onClick = { afficherDialogPreRestauration = false }) {
-                    Text("Annuler")
-                }
-            }
-        )
-    }
-
-    // Dialog 2 : confirmation après lecture du fichier
-    val etatFichierLu = etatRestauration as? EtatRestauration.FichierLu
-    if (etatFichierLu != null) {
-        AlertDialog(
-            onDismissRequest = onAnnulerRestauration,
-            title = { Text("Confirmer la restauration") },
-            text = {
-                val contenu = etatFichierLu.contenu
-                val dateLisible = contenu.dateSauvegarde
-                    ?.substringBefore("T")  // garde juste la date
-                    ?: "inconnue"
-                Text(
-                    "Cette sauvegarde contient :\n" +
-                            "- Liste : ${contenu.titreListe}\n" +
-                            "- ${contenu.nbCategories} catégorie${if (contenu.nbCategories > 1) "s" else ""}\n" +
-                            "- ${contenu.nbTaches} tâche${if (contenu.nbTaches > 1) "s" else ""}\n" +
-                            "- Datée du : $dateLisible\n\n" +
-                            "Toutes les données actuelles seront remplacées."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = onConfirmerRestauration,
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                ) { Text("Restaurer") }
-            },
-            dismissButton = {
-                TextButton(onClick = onAnnulerRestauration) { Text("Annuler") }
-            }
-        )
-    }
-
-    // Dialog 3 : message d'erreur si la lecture a échoué
-    val etatErreur = etatRestauration as? EtatRestauration.Erreur
-    if (etatErreur != null) {
-        AlertDialog(
-            onDismissRequest = onConsommerErreurRestauration,
-            title = { Text("Restauration impossible") },
-            text = { Text(etatErreur.message) },
-            confirmButton = {
-                TextButton(onClick = onConsommerErreurRestauration) { Text("OK") }
-            }
-        )
-    }
-
-    if (afficherDialogImport) {
-        AlertDialog(
-            onDismissRequest = { afficherDialogImport = false },
-            title = { Text("Import CSV") },
-            text = { Text("Import d'un fichier CSV contenant les tâches à ajouter dans l'application avec leur catégorie. Utiliser un fichier (sans entête, UTF-8) avec la catégorie dans la 1ère colonne et la tâche dans la seconde. Les deux données sont obligatoires.\n\nValider pour choisir le fichier.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    afficherDialogImport = false
-                    launcherImport.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
-                }) { Text("Valider") }
-            },
-            dismissButton = {
-                TextButton(onClick = { afficherDialogImport = false }) { Text("Annuler") }
-            }
-        )
     }
 
     if (afficherDialogCategorie) {

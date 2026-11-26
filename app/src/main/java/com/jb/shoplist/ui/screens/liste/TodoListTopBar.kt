@@ -1,7 +1,11 @@
 package com.jb.shoplist.ui.screens.liste
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -30,14 +34,12 @@ fun TodoListTopBar(
     onAnnulerCochage: () -> Unit,
     onOuvrirPartage: () -> Unit,
     onOuvrirOptions: () -> Unit,
-    onOuvrirImport: () -> Unit,
     onToutCocher: () -> Unit,
-    onSauvegardeComplete: () -> Unit,
-    onRestaurerSauvegarde: () -> Unit,
     isSearchMode: Boolean,
     onToggleSearchMode: () -> Unit,
     searchTerm: String,
-    onSearchTermChange: (String) -> Unit
+    onSearchTermChange: (String) -> Unit,
+    enBas: Boolean = false
 ) {
     var afficherMenu by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -84,6 +86,11 @@ fun TodoListTopBar(
                     )
                 }
             }
+        },
+        windowInsets = if (enBas) {
+            WindowInsets.navigationBars.union(WindowInsets.ime)
+        } else {
+            TopAppBarDefaults.windowInsets
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -135,27 +142,6 @@ fun TodoListTopBar(
                             onClick = {
                                 afficherMenu = false
                                 onOuvrirPartage()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Importer une liste") },
-                            onClick = {
-                                afficherMenu = false
-                                onOuvrirImport()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Sauvegarde complète") },
-                            onClick = {
-                                afficherMenu = false
-                                onSauvegardeComplete()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Restaurer une sauvegarde") },
-                            onClick = {
-                                afficherMenu = false
-                                onRestaurerSauvegarde()
                             }
                         )
                         DropdownMenuItem(

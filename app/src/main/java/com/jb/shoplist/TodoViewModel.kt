@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -85,6 +86,11 @@ sealed class EtatRestauration {
     data class Erreur(val message: String) : EtatRestauration()
 }
 
+/**
+ * Position de la barre de l'écran principal.
+ */
+enum class PositionBarre { HAUT, BAS }
+
 data class TodoUiState(
     val taches: List<TacheEntity> = emptyList(),
     val categories: List<CategorieEntity> = emptyList(),
@@ -103,6 +109,9 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
     private val _evenements = MutableSharedFlow<String>()
     val evenements = _evenements.asSharedFlow()
 
+    private val _operationReussie = MutableSharedFlow<Unit>()
+    val operationReussie = _operationReussie.asSharedFlow()
+
     private val _afficherFaites = MutableStateFlow(true)
     private val _termeRecherche = MutableStateFlow("")
     private val _actionAnnulable = MutableStateFlow<ActionAnnulable?>(null)
@@ -114,6 +123,16 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _etatRestauration = MutableStateFlow<EtatRestauration>(EtatRestauration.Inactif)
     val etatRestauration: StateFlow<EtatRestauration> = _etatRestauration.asStateFlow()
+
+    val positionBarre: StateFlow<PositionBarre> = parametreDao.observer("positionBarre")
+        .map { valeur -> PositionBarre.entries.firstOrNull { it.name == valeur } ?: PositionBarre.HAUT }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, PositionBarre.HAUT)
+
+    fun setPositionBarre(position: PositionBarre) {
+        viewModelScope.launch {
+            parametreDao.enregistrer(ParametreEntity(cle = "positionBarre", valeur = position.name))
+        }
+    }
 
     val uiState: StateFlow<TodoUiState> = combine(
         tacheDao.observerToutes(),
@@ -410,6 +429,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 inputStream?.close()
                 _evenements.emit("Importation réussie !")
+                _operationReussie.emit(Unit)
             } catch (e: Exception) {
                 e.printStackTrace()
                 _evenements.emit("Erreur lors de l'importation : ${e.message}")
@@ -640,6 +660,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
 
                 _etatRestauration.value = EtatRestauration.Inactif
                 _evenements.emit("Restauration réussie")
+                _operationReussie.emit(Unit)
 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -665,7 +686,7 @@ class TodoViewModel(application: Application) : AndroidViewModel(application) {
         val state = uiState.value
 
         // Récupérer tous les paramètres présents dans la base
-        val parametres = listOf("titreListe", "afficherFaites").mapNotNull { cle ->
+        val parametres = listOf("titreListe", "afficherFaites", "positionBarre").mapNotNull { cle ->
             parametreDao.observer(cle).first()?.let { valeur ->
                 JSONObject().apply {
                     put("cle", cle)

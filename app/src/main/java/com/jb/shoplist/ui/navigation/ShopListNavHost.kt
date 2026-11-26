@@ -2,6 +2,7 @@ package com.jb.shoplist.ui.navigation
 
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -26,6 +27,8 @@ fun ShopListNavHost(
     pileCochages: List<ActionCochage>,
     etatRestauration: EtatRestauration
 ) {
+    val positionBarre by viewModel.positionBarre.collectAsStateWithLifecycle()
+
     NavHost(navController = navController, startDestination = Routes.LISTE) {
         composable(Routes.LISTE) {
             val actionAnnulable by viewModel.actionAnnulable.collectAsStateWithLifecycle()
@@ -34,6 +37,7 @@ fun ShopListNavHost(
                 snackbarHostState = snackbarHostState,
                 actionAnnulable = actionAnnulable,
                 pileCochagesNonVide = pileCochages.isNotEmpty(),
+                positionBarre = positionBarre,
                 onAnnulerDernierCochage = viewModel::annulerDernierCochage,
                 onAjouterTache = viewModel::ajouterTache,
                 onBasculerFait = viewModel::basculerFait,
@@ -45,19 +49,12 @@ fun ShopListNavHost(
                 onToggleCategorieRepliee = viewModel::toggleCategorieRepliee,
                 onOuvrirPartage = { navController.navigate(Routes.PARTAGER) },
                 onOuvrirOptions = { navController.navigate(Routes.OPTIONS) },
-                onImporterCsv = viewModel::importerDepuisCsv,
                 onToutCocher = viewModel::toutCocher,
                 onBasculerAfficherFaites = viewModel::setAfficherFaites,
                 onSetTermeRecherche = viewModel::setTermeRecherche,
                 onTrierTachesParAlpha = viewModel::trierTachesParAlpha,
                 onModifierCouleurCategorie = viewModel::modifierCouleurCategorie,
-                onSupprimerCategorie = viewModel::supprimerCategorie,
-                onSauvegardeComplete = viewModel::sauvegardeComplete,
-                etatRestauration = etatRestauration,
-                onLireFichierSauvegarde = viewModel::lireFichierSauvegarde,
-                onConfirmerRestauration = viewModel::confirmerRestauration,
-                onAnnulerRestauration = viewModel::annulerRestauration,
-                onConsommerErreurRestauration = viewModel::consommerErreurRestauration
+                onSupprimerCategorie = viewModel::supprimerCategorie
             )
         }
         composable(Routes.CATEGORIES) {
@@ -86,11 +83,18 @@ fun ShopListNavHost(
             )
         }
         composable(Routes.OPTIONS) {
+            LaunchedEffect(Unit) {
+                viewModel.operationReussie.collect {
+                    navController.popBackStack(Routes.LISTE, inclusive = false)
+                }
+            }
             OptionsScreen(
                 titreListe = uiState.titreListe,
                 versionApp = BuildConfig.VERSION_NAME,
                 onModifierTitreListe = viewModel::modifierTitreListe,
                 onOuvrirCategories = { navController.navigate(Routes.CATEGORIES) },
+                positionBarre = positionBarre,
+                onChangerPositionBarre = viewModel::setPositionBarre,
                 onImporterCsv = viewModel::importerDepuisCsv,
                 onSauvegardeComplete = viewModel::sauvegardeComplete,
                 etatRestauration = etatRestauration,

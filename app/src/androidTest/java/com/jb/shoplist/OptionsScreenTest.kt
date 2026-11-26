@@ -21,6 +21,8 @@ class OptionsScreenTest {
                 versionApp = "2026.04",
                 onModifierTitreListe = {},
                 onOuvrirCategories = {},
+                positionBarre = PositionBarre.HAUT,
+                onChangerPositionBarre = {},
                 onImporterCsv = {},
                 onSauvegardeComplete = {},
                 etatRestauration = EtatRestauration.Inactif,
@@ -49,6 +51,8 @@ class OptionsScreenTest {
                 versionApp = "2026.04",
                 onModifierTitreListe = {},
                 onOuvrirCategories = { gererCategoriesAppele = true },
+                positionBarre = PositionBarre.HAUT,
+                onChangerPositionBarre = {},
                 onImporterCsv = {},
                 onSauvegardeComplete = {},
                 etatRestauration = EtatRestauration.Inactif,
@@ -74,6 +78,8 @@ class OptionsScreenTest {
                 versionApp = "2026.04",
                 onModifierTitreListe = { nouveauTitreRecu = it },
                 onOuvrirCategories = {},
+                positionBarre = PositionBarre.HAUT,
+                onChangerPositionBarre = {},
                 onImporterCsv = {},
                 onSauvegardeComplete = {},
                 etatRestauration = EtatRestauration.Inactif,
@@ -106,6 +112,8 @@ class OptionsScreenTest {
                 versionApp = "2026.04",
                 onModifierTitreListe = {},
                 onOuvrirCategories = {},
+                positionBarre = PositionBarre.HAUT,
+                onChangerPositionBarre = {},
                 onImporterCsv = {},
                 onSauvegardeComplete = {},
                 etatRestauration = EtatRestauration.Inactif,
@@ -117,7 +125,7 @@ class OptionsScreenTest {
             )
         }
 
-        composeTestRule.onNodeWithText("Position de la barre de titre et d'option").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Position de la barre de titre et d'options").assertIsDisplayed()
         composeTestRule.onNodeWithText("Importer une liste").assertIsDisplayed()
         composeTestRule.onNodeWithText("Sauvegarde complète").assertIsDisplayed()
         composeTestRule.onNodeWithText("Restaurer une sauvegarde").assertIsDisplayed()
@@ -125,12 +133,16 @@ class OptionsScreenTest {
 
     @Test
     fun testSelectionPositionBarreHautEtBas() {
+        var nouvellePosition: PositionBarre? = null
+
         composeTestRule.setContent {
             OptionsScreen(
                 titreListe = "Courses",
                 versionApp = "2026.04",
                 onModifierTitreListe = {},
                 onOuvrirCategories = {},
+                positionBarre = PositionBarre.HAUT,
+                onChangerPositionBarre = { nouvellePosition = it },
                 onImporterCsv = {},
                 onSauvegardeComplete = {},
                 etatRestauration = EtatRestauration.Inactif,
@@ -147,8 +159,7 @@ class OptionsScreenTest {
 
         composeTestRule.onNodeWithText("Bas").performClick()
 
-        composeTestRule.onNodeWithText("Bas").assertIsSelected()
-        composeTestRule.onNodeWithText("Haut").assertIsNotSelected()
+        assertEquals(PositionBarre.BAS, nouvellePosition)
     }
 
     @Test
@@ -159,6 +170,8 @@ class OptionsScreenTest {
                 versionApp = "2026.04",
                 onModifierTitreListe = {},
                 onOuvrirCategories = {},
+                positionBarre = PositionBarre.HAUT,
+                onChangerPositionBarre = {},
                 onImporterCsv = {},
                 onSauvegardeComplete = {},
                 etatRestauration = EtatRestauration.Inactif,
@@ -182,6 +195,8 @@ class OptionsScreenTest {
                 versionApp = "2026.04",
                 onModifierTitreListe = {},
                 onOuvrirCategories = {},
+                positionBarre = PositionBarre.HAUT,
+                onChangerPositionBarre = {},
                 onImporterCsv = {},
                 onSauvegardeComplete = {},
                 etatRestauration = EtatRestauration.Inactif,
@@ -207,6 +222,8 @@ class OptionsScreenTest {
                 versionApp = "2026.04",
                 onModifierTitreListe = {},
                 onOuvrirCategories = {},
+                positionBarre = PositionBarre.HAUT,
+                onChangerPositionBarre = {},
                 onImporterCsv = {},
                 onSauvegardeComplete = {},
                 etatRestauration = EtatRestauration.Erreur("Fichier invalide"),

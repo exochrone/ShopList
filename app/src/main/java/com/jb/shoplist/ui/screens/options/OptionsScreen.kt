@@ -17,12 +17,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jb.shoplist.EtatRestauration
+import com.jb.shoplist.PositionBarre
 import com.jb.shoplist.ui.components.SaisieDialog
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-private enum class PositionBarre { HAUT, BAS }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +30,8 @@ fun OptionsScreen(
     versionApp: String,
     onModifierTitreListe: (String) -> Unit,
     onOuvrirCategories: () -> Unit,
+    positionBarre: PositionBarre,
+    onChangerPositionBarre: (PositionBarre) -> Unit,
     onImporterCsv: (Uri) -> Unit,
     onSauvegardeComplete: (Uri) -> Unit,
     etatRestauration: EtatRestauration,
@@ -40,7 +41,6 @@ fun OptionsScreen(
     onConsommerErreurRestauration: () -> Unit,
     onRetour: () -> Unit
 ) {
-    var positionBarre by remember { mutableStateOf(PositionBarre.HAUT) }
     var afficherDialogRenommer by remember { mutableStateOf(false) }
     var afficherDialogImport by remember { mutableStateOf(false) }
     var afficherDialogPreRestauration by remember { mutableStateOf(false) }
@@ -113,9 +113,9 @@ fun OptionsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Option « Position de la barre de titre et d'option »
+            // 2. Option « Position de la barre de titre et d'options »
             Text(
-                text = "Position de la barre de titre et d'option",
+                text = "Position de la barre de titre et d'options",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -123,12 +123,12 @@ fun OptionsScreen(
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 SegmentedButton(
                     selected = positionBarre == PositionBarre.HAUT,
-                    onClick = { positionBarre = PositionBarre.HAUT },
+                    onClick = { onChangerPositionBarre(PositionBarre.HAUT) },
                     shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
                 ) { Text("Haut") }
                 SegmentedButton(
                     selected = positionBarre == PositionBarre.BAS,
-                    onClick = { positionBarre = PositionBarre.BAS },
+                    onClick = { onChangerPositionBarre(PositionBarre.BAS) },
                     shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
                 ) { Text("Bas") }
             }
@@ -230,7 +230,7 @@ fun OptionsScreen(
             text = {
                 Text(
                     "La restauration va remplacer toutes les données actuelles " +
-                            "(catégories, tâches, paramètres). Cette action est irréversible.\n\n" +
+                            "(catégories, tâches, paramètres). Cette action me est irréversible.\n\n" +
                             "Voulez-vous continuer ?"
                 )
             },
