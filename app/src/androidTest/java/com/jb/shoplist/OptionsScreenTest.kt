@@ -71,7 +71,7 @@ class OptionsScreenTest {
         composeTestRule.onNodeWithText("Renommer la liste").assertIsDisplayed()
 
         // Saisir un nouveau titre et valider
-        composeTestRule.onNodeWithText("Nouveau titre").performTextReplacement("Maison")
+        composeTestRule.onNode(hasSetTextAction()).performTextReplacement("Maison")
         composeTestRule.onNodeWithText("Valider").performClick()
 
         assertEquals("Maison", nouveauTitreRecu)
