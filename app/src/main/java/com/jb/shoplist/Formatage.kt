@@ -19,6 +19,20 @@ fun comparateurAlphabetique(): Comparator<String> {
 fun nomsProduitsIdentiques(a: String, b: String): Boolean =
     a.trim().lowercase() == b.trim().lowercase()
 
+/**
+ * État replié à afficher pour une catégorie.
+ * En recherche active, une catégorie qui a des résultats est affichée dépliée
+ * (sans modification en base), sauf si l'utilisateur a touché son en-tête
+ * pendant la recherche : elle suit alors son état en base.
+ */
+fun categorieReplieeAffichee(
+    replieeEnBase: Boolean,
+    rechercheActive: Boolean,
+    aDesResultats: Boolean,
+    toucheeEnRecherche: Boolean
+): Boolean =
+    if (rechercheActive && aDesResultats && !toucheeEnRecherche) false else replieeEnBase
+
 /** "Aubergine : 3", ou "Aubergine" si la quantité est vide. */
 fun libelleAvecQuantite(titre: String, quantite: String): String {
     return if (quantite.isNotBlank()) {

@@ -72,4 +72,20 @@ class FormatageTest {
         assertTrue(nomsProduitsIdentiques("Épinards", "épinards"))
         assertFalse(nomsProduitsIdentiques("Epinards", "Épinards"))
     }
+
+    @Test
+    fun testCategorieReplieeAffichee() {
+        // hors recherche, repliée en base -> true
+        assertTrue(categorieReplieeAffichee(replieeEnBase = true, rechercheActive = false, aDesResultats = true, toucheeEnRecherche = false))
+        // hors recherche, dépliée en base -> false
+        assertFalse(categorieReplieeAffichee(replieeEnBase = false, rechercheActive = false, aDesResultats = true, toucheeEnRecherche = false))
+        // recherche active, repliée en base, avec résultats, non touchée -> false
+        assertFalse(categorieReplieeAffichee(replieeEnBase = true, rechercheActive = true, aDesResultats = true, toucheeEnRecherche = false))
+        // recherche active, repliée en base, sans résultat, non touchée -> true
+        assertTrue(categorieReplieeAffichee(replieeEnBase = true, rechercheActive = true, aDesResultats = false, toucheeEnRecherche = false))
+        // recherche active, repliée en base, avec résultats, touchée -> true
+        assertTrue(categorieReplieeAffichee(replieeEnBase = true, rechercheActive = true, aDesResultats = true, toucheeEnRecherche = true))
+        // recherche active, dépliée en base, touchée -> false
+        assertFalse(categorieReplieeAffichee(replieeEnBase = false, rechercheActive = true, aDesResultats = true, toucheeEnRecherche = true))
+    }
 }

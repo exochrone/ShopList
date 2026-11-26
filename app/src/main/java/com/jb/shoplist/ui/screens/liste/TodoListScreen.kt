@@ -33,6 +33,7 @@ import com.jb.shoplist.CategorieEntity
 import com.jb.shoplist.EtatRestauration
 import com.jb.shoplist.TacheEntity
 import com.jb.shoplist.TodoUiState
+import com.jb.shoplist.categorieReplieeAffichee
 import com.jb.shoplist.nomsProduitsIdentiques
 import com.jb.shoplist.ui.components.ProduitEditionDialog
 import com.jb.shoplist.ui.components.SaisieDialog
@@ -79,6 +80,7 @@ fun TodoListScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var modeRecherche by remember { mutableStateOf(false) }
+    var categoriesToucheesEnRecherche by remember { mutableStateOf(setOf<String>()) }
     var cibleDefilement by remember { mutableStateOf<CibleDefilement?>(null) }
 
     fun quitterRecherche(cible: CibleDefilement? = null) {
@@ -87,6 +89,7 @@ fun TodoListScreen(
         modeRecherche = false
         onSetTermeRecherche("")
         cibleDefilement = cible
+        categoriesToucheesEnRecherche = emptySet()
     }
 
     var idTacheGlissee by remember { mutableStateOf<Int?>(null) }
@@ -162,8 +165,9 @@ fun TodoListScreen(
         uri?.let { onLireFichierSauvegarde(it) }
     }
 
-    val lignes: List<LigneAffichee> = remember(uiState.categories, uiState.taches, uiState.afficherFaites, uiState.termeRecherche) {
+    val lignes: List<LigneAffichee> = remember(uiState.categories, uiState.taches, uiState.afficherFaites, uiState.termeRecherche, categoriesToucheesEnRecherche) {
         val recherche = uiState.termeRecherche.trim().sansAccents().lowercase()
+        val rechercheActive = recherche.isNotEmpty()
         buildList {
             uiState.categories.forEach { cat ->
                 val tachesDeLaCat = uiState.taches.filter { it.categorie == cat.nom }
@@ -185,8 +189,14 @@ fun TodoListScreen(
                 }
 
                 if (tachesFinales.isNotEmpty() || (recherche.isEmpty() && uiState.afficherFaites)) {
-                    add(LigneAffichee.Header(cat, nombreNonCoches))
-                    if (!cat.repliee) {
+                    val replieeAffichee = categorieReplieeAffichee(
+                        replieeEnBase = cat.repliee,
+                        rechercheActive = rechercheActive,
+                        aDesResultats = tachesFinales.isNotEmpty(),
+                        toucheeEnRecherche = cat.nom in categoriesToucheesEnRecherche
+                    )
+                    add(LigneAffichee.Header(cat, nombreNonCoches, replieeAffichee))
+                    if (!replieeAffichee) {
                         tachesFinales.forEach { tache ->
                             add(LigneAffichee.ItemTache(tache, cat.couleur))
                         }
@@ -325,13 +335,24 @@ fun TodoListScreen(
                                     .fillMaxWidth()
                                     .padding(top = 4.dp)
                                     .clickable {
-                                        if (modeRecherche) quitterRecherche(CibleDefilement(ligne.cleUnique, null))
-                                        onToggleCategorieRepliee(ligne.categorie)
+                                        val rechercheActive = modeRecherche && uiState.termeRecherche.trim().isNotEmpty()
+                                        if (rechercheActive) {
+                                            // L'état affiché est inversé et la base est alignée dessus.
+                                            // Si l'affichage diffère de la base (dépliage automatique d'une catégorie
+                                            // repliée en base), le nouvel état affiché est l'état en base : pas d'écriture.
+                                            if (ligne.replieeAffichee == ligne.categorie.repliee) {
+                                                onToggleCategorieRepliee(ligne.categorie)
+                                            }
+                                            categoriesToucheesEnRecherche = categoriesToucheesEnRecherche + ligne.categorie.nom
+                                        } else {
+                                            if (modeRecherche) quitterRecherche(CibleDefilement(ligne.cleUnique, null))
+                                            onToggleCategorieRepliee(ligne.categorie)
+                                        }
                                     }
                             ) {
                                 Icon(
-                                    imageVector = if (ligne.categorie.repliee) Icons.Default.ChevronRight else Icons.Default.ExpandMore,
-                                    contentDescription = if (ligne.categorie.repliee) "Déplier" else "Replier",
+                                    imageVector = if (ligne.replieeAffichee) Icons.Default.ChevronRight else Icons.Default.ExpandMore,
+                                    contentDescription = if (ligne.replieeAffichee) "Déplier" else "Replier",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(24.dp)
                                 )

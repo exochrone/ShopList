@@ -7,7 +7,8 @@ sealed class LigneAffichee {
     abstract val cleUnique: String
     data class Header(
         val categorie: CategorieEntity,
-        val nombreNonCoches: Int
+        val nombreNonCoches: Int,
+        val replieeAffichee: Boolean = categorie.repliee
     ) : LigneAffichee() {
         override val cleUnique = "header_${categorie.nom}"
     }
