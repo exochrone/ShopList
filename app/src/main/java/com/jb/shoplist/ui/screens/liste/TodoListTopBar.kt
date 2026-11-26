@@ -28,11 +28,9 @@ fun TodoListTopBar(
     onToggleAfficherFaites: () -> Unit,
     undoCochageActif: Boolean,
     onAnnulerCochage: () -> Unit,
-    onOuvrirCategories: () -> Unit,
     onOuvrirPartage: () -> Unit,
     onOuvrirOptions: () -> Unit,
     onOuvrirImport: () -> Unit,
-    onRenommerListe: () -> Unit,
     onToutCocher: () -> Unit,
     onSauvegardeComplete: () -> Unit,
     onRestaurerSauvegarde: () -> Unit,
@@ -133,13 +131,6 @@ fun TodoListTopBar(
                         onDismissRequest = { afficherMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Gérer les catégories") },
-                            onClick = {
-                                afficherMenu = false
-                                onOuvrirCategories()
-                            }
-                        )
-                        DropdownMenuItem(
                             text = { Text("Partager la liste") },
                             onClick = {
                                 afficherMenu = false
@@ -165,13 +156,6 @@ fun TodoListTopBar(
                             onClick = {
                                 afficherMenu = false
                                 onRestaurerSauvegarde()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Renommer la liste") },
-                            onClick = {
-                                afficherMenu = false
-                                onRenommerListe()
                             }
                         )
                         DropdownMenuItem(

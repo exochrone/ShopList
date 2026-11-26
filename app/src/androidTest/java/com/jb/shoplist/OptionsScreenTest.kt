@@ -21,6 +21,13 @@ class OptionsScreenTest {
                 versionApp = "2026.04",
                 onModifierTitreListe = {},
                 onOuvrirCategories = {},
+                onImporterCsv = {},
+                onSauvegardeComplete = {},
+                etatRestauration = EtatRestauration.Inactif,
+                onLireFichierSauvegarde = {},
+                onConfirmerRestauration = {},
+                onAnnulerRestauration = {},
+                onConsommerErreurRestauration = {},
                 onRetour = {}
             )
         }
@@ -42,6 +49,13 @@ class OptionsScreenTest {
                 versionApp = "2026.04",
                 onModifierTitreListe = {},
                 onOuvrirCategories = { gererCategoriesAppele = true },
+                onImporterCsv = {},
+                onSauvegardeComplete = {},
+                etatRestauration = EtatRestauration.Inactif,
+                onLireFichierSauvegarde = {},
+                onConfirmerRestauration = {},
+                onAnnulerRestauration = {},
+                onConsommerErreurRestauration = {},
                 onRetour = {}
             )
         }
@@ -60,6 +74,13 @@ class OptionsScreenTest {
                 versionApp = "2026.04",
                 onModifierTitreListe = { nouveauTitreRecu = it },
                 onOuvrirCategories = {},
+                onImporterCsv = {},
+                onSauvegardeComplete = {},
+                etatRestauration = EtatRestauration.Inactif,
+                onLireFichierSauvegarde = {},
+                onConfirmerRestauration = {},
+                onAnnulerRestauration = {},
+                onConsommerErreurRestauration = {},
                 onRetour = {}
             )
         }
@@ -75,5 +96,132 @@ class OptionsScreenTest {
         composeTestRule.onNodeWithText("Valider").performClick()
 
         assertEquals("Maison", nouveauTitreRecu)
+    }
+
+    @Test
+    fun testAffichageBoutonsEtOptionPositionBarre() {
+        composeTestRule.setContent {
+            OptionsScreen(
+                titreListe = "Courses",
+                versionApp = "2026.04",
+                onModifierTitreListe = {},
+                onOuvrirCategories = {},
+                onImporterCsv = {},
+                onSauvegardeComplete = {},
+                etatRestauration = EtatRestauration.Inactif,
+                onLireFichierSauvegarde = {},
+                onConfirmerRestauration = {},
+                onAnnulerRestauration = {},
+                onConsommerErreurRestauration = {},
+                onRetour = {}
+            )
+        }
+
+        composeTestRule.onNodeWithText("Position de la barre de titre et d'option").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Importer une liste").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Sauvegarde complète").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Restaurer une sauvegarde").assertIsDisplayed()
+    }
+
+    @Test
+    fun testSelectionPositionBarreHautEtBas() {
+        composeTestRule.setContent {
+            OptionsScreen(
+                titreListe = "Courses",
+                versionApp = "2026.04",
+                onModifierTitreListe = {},
+                onOuvrirCategories = {},
+                onImporterCsv = {},
+                onSauvegardeComplete = {},
+                etatRestauration = EtatRestauration.Inactif,
+                onLireFichierSauvegarde = {},
+                onConfirmerRestauration = {},
+                onAnnulerRestauration = {},
+                onConsommerErreurRestauration = {},
+                onRetour = {}
+            )
+        }
+
+        composeTestRule.onNodeWithText("Haut").assertIsSelected()
+        composeTestRule.onNodeWithText("Bas").assertIsNotSelected()
+
+        composeTestRule.onNodeWithText("Bas").performClick()
+
+        composeTestRule.onNodeWithText("Bas").assertIsSelected()
+        composeTestRule.onNodeWithText("Haut").assertIsNotSelected()
+    }
+
+    @Test
+    fun testToucherImporterListeAfficheDialogueCsv() {
+        composeTestRule.setContent {
+            OptionsScreen(
+                titreListe = "Courses",
+                versionApp = "2026.04",
+                onModifierTitreListe = {},
+                onOuvrirCategories = {},
+                onImporterCsv = {},
+                onSauvegardeComplete = {},
+                etatRestauration = EtatRestauration.Inactif,
+                onLireFichierSauvegarde = {},
+                onConfirmerRestauration = {},
+                onAnnulerRestauration = {},
+                onConsommerErreurRestauration = {},
+                onRetour = {}
+            )
+        }
+
+        composeTestRule.onNodeWithText("Importer une liste").performClick()
+        composeTestRule.onNodeWithText("Import CSV").assertIsDisplayed()
+    }
+
+    @Test
+    fun testToucherRestaurerSauvegardeAfficheBoutonChoisirFichier() {
+        composeTestRule.setContent {
+            OptionsScreen(
+                titreListe = "Courses",
+                versionApp = "2026.04",
+                onModifierTitreListe = {},
+                onOuvrirCategories = {},
+                onImporterCsv = {},
+                onSauvegardeComplete = {},
+                etatRestauration = EtatRestauration.Inactif,
+                onLireFichierSauvegarde = {},
+                onConfirmerRestauration = {},
+                onAnnulerRestauration = {},
+                onConsommerErreurRestauration = {},
+                onRetour = {}
+            )
+        }
+
+        composeTestRule.onNodeWithText("Restaurer une sauvegarde").performClick()
+        composeTestRule.onNodeWithText("Choisir un fichier").assertIsDisplayed()
+    }
+
+    @Test
+    fun testEtatRestaurationErreurAfficheDialogueEtAppelleConsommerErreur() {
+        var consommerAppele = false
+
+        composeTestRule.setContent {
+            OptionsScreen(
+                titreListe = "Courses",
+                versionApp = "2026.04",
+                onModifierTitreListe = {},
+                onOuvrirCategories = {},
+                onImporterCsv = {},
+                onSauvegardeComplete = {},
+                etatRestauration = EtatRestauration.Erreur("Fichier invalide"),
+                onLireFichierSauvegarde = {},
+                onConfirmerRestauration = {},
+                onAnnulerRestauration = {},
+                onConsommerErreurRestauration = { consommerAppele = true },
+                onRetour = {}
+            )
+        }
+
+        composeTestRule.onNodeWithText("Restauration impossible").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Fichier invalide").assertIsDisplayed()
+        composeTestRule.onNodeWithText("OK").performClick()
+
+        assertTrue(consommerAppele)
     }
 }

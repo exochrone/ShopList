@@ -57,9 +57,7 @@ fun TodoListScreen(
     onReordonnerTaches: (List<TacheEntity>) -> Unit,
     onAjouterCategorie: (String) -> Unit,
     onRenommerCategorie: (CategorieEntity, String) -> Unit,
-    onModifierTitreListe: (String) -> Unit,
     onToggleCategorieRepliee: (CategorieEntity) -> Unit,
-    onOuvrirCategories: () -> Unit,
     onOuvrirPartage: () -> Unit,
     onOuvrirOptions: () -> Unit,
     onImporterCsv: (android.net.Uri) -> Unit,
@@ -132,8 +130,6 @@ fun TodoListScreen(
         quitterRecherche()
     }
     var afficherDialogCategorie by remember { mutableStateOf(false) }
-
-    var afficherDialogRenommer by remember { mutableStateOf(false) }
 
     var afficherDialogImport by remember { mutableStateOf(false) }
 
@@ -267,13 +263,9 @@ fun TodoListScreen(
                 onToggleAfficherFaites = { onBasculerAfficherFaites(!uiState.afficherFaites) },
                 undoCochageActif = pileCochagesNonVide,
                 onAnnulerCochage = onAnnulerDernierCochage,
-                onOuvrirCategories = onOuvrirCategories,
                 onOuvrirPartage = onOuvrirPartage,
                 onOuvrirOptions = onOuvrirOptions,
                 onOuvrirImport = { afficherDialogImport = true },
-                onRenommerListe = {
-                    afficherDialogRenommer = true
-                },
                 onToutCocher = {
                     onBasculerAfficherFaites(true)
                     onToutCocher()
@@ -593,19 +585,6 @@ fun TodoListScreen(
                 afficherDialogCategorie = false
             },
             onAnnuler = { afficherDialogCategorie = false }
-        )
-    }
-
-    if (afficherDialogRenommer) {
-        SaisieDialog(
-            titre = "Renommer la liste",
-            valeurInitiale = uiState.titreListe,
-            placeholder = "Nouveau titre",
-            onValider = { titre ->
-                onModifierTitreListe(titre)
-                afficherDialogRenommer = false
-            },
-            onAnnuler = { afficherDialogRenommer = false }
         )
     }
 

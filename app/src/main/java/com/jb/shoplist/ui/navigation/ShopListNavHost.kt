@@ -42,9 +42,7 @@ fun ShopListNavHost(
                 onReordonnerTaches = viewModel::reordonnerTaches,
                 onAjouterCategorie = viewModel::ajouterCategorie,
                 onRenommerCategorie = viewModel::renommerCategorie,
-                onModifierTitreListe = viewModel::modifierTitreListe,
                 onToggleCategorieRepliee = viewModel::toggleCategorieRepliee,
-                onOuvrirCategories = { navController.navigate(Routes.CATEGORIES) },
                 onOuvrirPartage = { navController.navigate(Routes.PARTAGER) },
                 onOuvrirOptions = { navController.navigate(Routes.OPTIONS) },
                 onImporterCsv = viewModel::importerDepuisCsv,
@@ -93,6 +91,13 @@ fun ShopListNavHost(
                 versionApp = BuildConfig.VERSION_NAME,
                 onModifierTitreListe = viewModel::modifierTitreListe,
                 onOuvrirCategories = { navController.navigate(Routes.CATEGORIES) },
+                onImporterCsv = viewModel::importerDepuisCsv,
+                onSauvegardeComplete = viewModel::sauvegardeComplete,
+                etatRestauration = etatRestauration,
+                onLireFichierSauvegarde = viewModel::lireFichierSauvegarde,
+                onConfirmerRestauration = viewModel::confirmerRestauration,
+                onAnnulerRestauration = viewModel::annulerRestauration,
+                onConsommerErreurRestauration = viewModel::consommerErreurRestauration,
                 onRetour = { navController.popBackStack() }
             )
         }
