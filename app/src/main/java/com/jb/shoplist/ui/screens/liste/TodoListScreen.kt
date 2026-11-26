@@ -183,8 +183,7 @@ fun TodoListScreen(
                     tachesFiltreesParFait
                 } else {
                     tachesDeLaCat.filter { tache ->
-                        tache.titre.sansAccents().lowercase().contains(recherche) ||
-                                cat.nom.sansAccents().lowercase().contains(recherche)
+                        tache.titre.sansAccents().lowercase().contains(recherche)
                     }
                 }
 
