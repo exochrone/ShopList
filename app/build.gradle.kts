@@ -13,8 +13,8 @@ android {
         applicationId = "com.jb.shoplist"
         minSdk = 31
         targetSdk = 35
-        versionCode = 2
-        versionName = "2026.04"
+        versionCode = 3
+        versionName = "2026.05"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

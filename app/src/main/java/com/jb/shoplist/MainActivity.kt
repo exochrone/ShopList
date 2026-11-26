@@ -5,15 +5,17 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,17 +66,16 @@ fun TodoApp() {
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { innerPadding ->
-        // On pourrait passer innerPadding à ShopListNavHost si besoin de gérer les insets
-        ShopListNavHost(
-            navController = navController,
-            uiState = uiState,
-            viewModel = viewModel,
-            snackbarHostState = snackbarHostState,
-            pileCochages = pileCochages,
-            etatRestauration = etatRestauration
-        )
+    Scaffold { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            ShopListNavHost(
+                navController = navController,
+                uiState = uiState,
+                viewModel = viewModel,
+                snackbarHostState = snackbarHostState,
+                pileCochages = pileCochages,
+                etatRestauration = etatRestauration
+            )
+        }
     }
 }

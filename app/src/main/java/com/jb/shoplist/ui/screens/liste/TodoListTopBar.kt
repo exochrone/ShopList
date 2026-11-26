@@ -133,31 +133,45 @@ fun TodoListTopBar(
                     IconButton(onClick = { afficherMenu = true }) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
+
+                    val entrees: List<@Composable () -> Unit> = listOf(
+                        {
+                            DropdownMenuItem(
+                                text = { Text("Partager la liste") },
+                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                onClick = {
+                                    afficherMenu = false
+                                    onOuvrirPartage()
+                                }
+                            )
+                        },
+                        {
+                            DropdownMenuItem(
+                                text = { Text("Tout cocher") },
+                                leadingIcon = { Icon(Icons.Default.Checklist, contentDescription = null) },
+                                onClick = {
+                                    afficherMenu = false
+                                    onToutCocher()
+                                }
+                            )
+                        },
+                        {
+                            DropdownMenuItem(
+                                text = { Text("Options") },
+                                leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                                onClick = {
+                                    afficherMenu = false
+                                    onOuvrirOptions()
+                                }
+                            )
+                        }
+                    )
+
                     DropdownMenu(
                         expanded = afficherMenu,
                         onDismissRequest = { afficherMenu = false }
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("Partager la liste") },
-                            onClick = {
-                                afficherMenu = false
-                                onOuvrirPartage()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Tout cocher") },
-                            onClick = {
-                                afficherMenu = false
-                                onToutCocher()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Options") },
-                            onClick = {
-                                afficherMenu = false
-                                onOuvrirOptions()
-                            }
-                        )
+                        (if (enBas) entrees.reversed() else entrees).forEach { entree -> entree() }
                     }
                 }
             }

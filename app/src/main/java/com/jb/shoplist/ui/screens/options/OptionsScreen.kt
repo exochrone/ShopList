@@ -111,7 +111,13 @@ fun OptionsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+            )
 
             // 2. Option « Position de la barre de titre et d'options »
             Text(
@@ -133,7 +139,13 @@ fun OptionsScreen(
                 ) { Text("Bas") }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+            )
 
             // 3. Bouton « Gérer les catégories »
             OutlinedButton(
@@ -143,7 +155,13 @@ fun OptionsScreen(
                 Text("Gérer les catégories")
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+            )
 
             // 4. Bouton « Importer une liste »
             OutlinedButton(
@@ -153,7 +171,13 @@ fun OptionsScreen(
                 Text("Importer une liste")
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+            )
 
             // 5. Bouton « Sauvegarde complète »
             OutlinedButton(
@@ -177,6 +201,14 @@ fun OptionsScreen(
             ) {
                 Text("Restaurer une sauvegarde")
             }
+
+            HorizontalDivider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+            )
 
             Spacer(modifier = Modifier.weight(1f))
 

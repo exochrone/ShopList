@@ -1,10 +1,10 @@
 # shopList : description fonctionnelle et technique
 
-Document de référence décrivant l'application shopList telle qu'elle existe dans le dépôt `exochrone/shopList` (version `2026.04`, versionCode 2, branche `main`, dernier commit relu : `858e9d3` « Fermer la recherche en touchant sous la liste »). Il sert de contexte pour concevoir et spécifier les évolutions.
+Document de référence décrivant l'application shopList telle qu'elle existe dans le dépôt `exochrone/shopList` (version `2026.04`, versionCode 2, branche `main`, dernier commit relu : `ea29cf5` « Correction typo dialogue restauration + test position barre »). Il sert de contexte pour concevoir et spécifier les évolutions.
 
-**Dernière mise à jour : 26/11/2026 à 10:30 (heure de Paris).**
+**Dernière mise à jour : 26/11/2026 à 17:35 (heure de Paris).**
 
-Modules implémentés depuis la première version de ce document : **MODULE 01** (quantités des produits), **MODULE 01b** (affichage de la quantité), **MODULE 02** (dialogue « Nouveau produit » harmonisé, catégories en couleur dans les dialogues produit), **MODULE 03** (tri alphabétique respectant les lettres accentuées), **MODULE 04** (unicité des produits par catégorie), **MODULE 05** (fermeture automatique de la recherche, bouton œil masqué en recherche) et **MODULE 05b** (fermeture de la recherche en touchant sous la fin de la liste). Leurs spécifications sont dans le dossier `/specs` du dépôt.
+Modules implémentés depuis la première version de ce document : **MODULE 01** (quantités des produits), **MODULE 01b** (affichage de la quantité), **MODULE 02** (dialogue « Nouveau produit » harmonisé, catégories en couleur dans les dialogues produit), **MODULE 03** (tri alphabétique respectant les lettres accentuées), **MODULE 04** (unicité des produits par catégorie), **MODULE 05** (fermeture automatique de la recherche, bouton œil masqué en recherche), **MODULE 05b** (fermeture de la recherche en touchant sous la fin de la liste), **MODULE 06** (recherche sur le nom des produits seulement, dépliage automatique des catégories en recherche), **MODULE 07** (écran Options), **MODULE 07b** (import, sauvegarde, restauration et choix de position de la barre dans Options) et **MODULE 07c** (menu principal allégé, position haut / bas de la barre de l'écran principal, retour à la liste après import ou restauration). Leurs spécifications sont dans le dossier `/specs` du dépôt.
 
 ---
 
@@ -28,18 +28,23 @@ Vocabulaire : l'application est née comme une todo list. Dans le code et dans u
 
 ### 2.1 Écran principal : la liste
 
-**Barre du haut**, de gauche à droite :
+**Barre de titre et d'options**, de gauche à droite :
 
 * Titre de la liste.
 * **Annuler le dernier cochage** (icône flèche retour) : actif seulement s'il existe des cochages à annuler.
 * **Rechercher** (loupe).
 * **Afficher / masquer les produits cochés** (icône œil). Le réglage est mémorisé. Ce bouton n'est pas affiché en mode recherche (voir 2.5).
-* **Menu** (icône hamburger) : Gérer les catégories, Partager la liste, Importer une liste, Sauvegarde complète, Restaurer une sauvegarde, Renommer la liste, Tout cocher.
+* **Menu** (icône hamburger) : Partager la liste, Tout cocher, Options.
+
+**Position de la barre** (réglage de l'écran Options, voir 2.11) :
+
+* **Haut** (par défaut) : barre en haut de l'écran.
+* **Bas** : barre en bas de l'écran, au-dessus de la barre de navigation Android ; la liste occupe l'espace au-dessus et commence juste sous la barre d'état. En recherche, la barre remonte au-dessus du clavier. Le menu hamburger s'ouvre vers le haut ; les snackbars de l'écran principal s'affichent au-dessus de la barre. Le contenu de la barre et ses comportements sont identiques dans les deux positions.
 
 **Contenu** : les catégories dans l'ordre défini par l'utilisateur, chacune suivie de ses produits.
 
-* **En-tête de catégorie** : chevron (replié / déplié), nom de la catégorie dans sa couleur, nombre de produits non cochés entre parenthèses, bouton **⋮** (options de la catégorie).
-  * Toucher l'en-tête replie ou déplie la catégorie (état mémorisé en base).
+* **En-tête de catégorie** : chevron (replié / déplié, selon l'état affiché, qui peut différer de l'état en base pendant une recherche, voir 2.5), nom de la catégorie dans sa couleur, nombre de produits non cochés entre parenthèses, bouton **⋮** (options de la catégorie).
+  * Toucher l'en-tête replie ou déplie la catégorie (état mémorisé en base ; cas de la recherche en 2.5).
   * Le bouton ⋮ ouvre un menu :
     * « N élément(s) » (information, non cliquable) ;
     * **Ajout d'élément** : ouvre le dialogue « Nouveau produit » avec cette catégorie présélectionnée (voir 2.2) ;
@@ -109,24 +114,25 @@ Comportement :
 ### 2.5 Recherche
 
 * La loupe remplace le titre par un champ de recherche (focus automatique) et affiche une **flèche retour** à gauche pour quitter la recherche.
-* Filtre en direct, **sans tenir compte des accents ni de la casse**, sur le nom du produit **ou** le nom de sa catégorie. La quantité n'est pas prise en compte.
+* Filtre en direct, **sans tenir compte des accents ni de la casse**, sur le **nom du produit uniquement** (le nom de la catégorie n'est pas comparé, la quantité non plus). Une catégorie n'apparaît pendant une recherche que si elle contient au moins un produit correspondant, et elle n'affiche que ces produits.
 * En recherche, les produits cochés sont toujours inclus, et le glisser-déposer est désactivé.
 * Un produit présent dans plusieurs catégories apparaît sous chacune d'elles.
-* **Catégorie repliée** : le repli est respecté en recherche. Si une catégorie repliée contient des résultats, seul son en-tête est affiché, sans les produits trouvés ; il faut la déplier pour les voir (ce qui ferme la recherche, voir plus bas).
+* **Dépliage automatique** : quand un terme est saisi, une catégorie qui contient au moins un résultat s'affiche **dépliée**, même si elle est repliée en base. Ce dépliage n'est jamais écrit en base : dès qu'elle n'a plus de résultat (le terme change) ou à la sortie de la recherche, elle reprend son état en base. Exemple : « Boulangerie » repliée contient « Pain » et « Pain de mie » ; « pain » la déplie et affiche les deux produits ; « pain au » la fait disparaître (aucun résultat) ; elle est repliée à la sortie de la recherche.
+* **Toucher un en-tête quand un terme est saisi** : l'état affiché est inversé et la base est alignée dessus ; **la recherche reste ouverte**. Pour une catégorie dépliée automatiquement (repliée en base), le premier toucher la replie à l'écran sans écriture en base (la base dit déjà « repliée »), le suivant la déplie et l'enregistre. Après un toucher, le dépliage automatique ne s'applique plus à cette catégorie jusqu'à la sortie de la recherche.
 * Une croix, visible seulement quand le champ contient du texte, efface la recherche. Le **bouton œil n'est pas affiché** en recherche (il n'aurait pas d'effet, puisque les cochés sont toujours inclus) ; il réapparaît à la sortie avec son état d'avant. Le bouton d'annulation du cochage et le menu hamburger ne sont pas affichés non plus.
 * **Quitter la recherche** (le terme est effacé, le clavier se ferme) :
   * flèche retour de la barre, ou Retour système ;
   * **fermeture automatique** quand l'utilisateur :
     * touche le texte d'un produit : la recherche se ferme, puis le dialogue « Modifier le produit » s'ouvre ;
-    * touche un en-tête de catégorie : la recherche se ferme, puis la catégorie est repliée ou dépliée ;
+    * touche un en-tête de catégorie **alors que le champ de recherche est vide** : la recherche se ferme, puis la catégorie est repliée ou dépliée en base ;
     * choisit une action dans le menu ⋮ d'une catégorie (Ajout d'élément, Tri alphabétique, Modifier la catégorie, Choix de la couleur, Supprimer) : la recherche se ferme, puis l'action se déroule normalement ;
     * touche la zone vide **sous le séparateur qui termine la liste** (uniquement si ce séparateur est visible à l'écran).
 * Dans les trois premiers cas automatiques, la liste complète défile si besoin pour garder visible le produit ou l'en-tête touché (vers l'en-tête de sa catégorie si le produit n'est plus affiché, par exemple un produit coché alors que les cochés sont masqués).
-* Ne ferment pas la recherche : cocher ou décocher un produit (pour cocher plusieurs résultats d'affilée), ouvrir puis refermer le menu ⋮ sans choisir d'action, toucher entre deux lignes ou dans les marges, faire défiler la liste.
+* Ne ferment pas la recherche : toucher un en-tête de catégorie quand un terme est saisi, cocher ou décocher un produit (pour cocher plusieurs résultats d'affilée), ouvrir puis refermer le menu ⋮ sans choisir d'action, toucher entre deux lignes ou dans les marges, faire défiler la liste.
 
 ### 2.6 Gérer les catégories
 
-Écran « Gestion des catégories » (menu), avec flèche retour et bouton « + » dans la barre du haut. Il complète le menu ⋮ des en-têtes de l'écran principal.
+Écran « Gestion des catégories » (bouton « Gérer les catégories » de l'écran Options ; la flèche retour ramène à Options), avec flèche retour et bouton « + » dans la barre du haut. Il complète le menu ⋮ des en-têtes de l'écran principal.
 
 Chaque catégorie affiche : poignée de déplacement, nom (dans sa couleur), nombre de produits (« Vide » ou « N tâche(s) »), puis trois boutons :
 
@@ -159,7 +165,7 @@ Autres actions :
 * Une ligne `categorie;` pour chaque catégorie vide.
 * Les valeurs contenant `;`, `"` ou un retour à la ligne sont placées entre guillemets.
 
-**Import** (menu « Importer une liste ») : après un message d'explication, choix d'un fichier CSV.
+**Import** (bouton « Importer une liste » de l'écran Options) : après un message d'explication, choix d'un fichier CSV. Après un import réussi, l'application revient sur l'écran principal ; en cas d'erreur ou d'annulation, on reste sur Options.
 
 * Format accepté : `categorie;produit` ou `categorie;produit;quantite`, UTF-8, sans en-tête ; catégorie et produit obligatoires, quantité facultative, colonnes suivantes ignorées.
 * Les champs entre guillemets sont correctement lus (un `;` entre guillemets ne sépare pas, `""` donne `"`).
@@ -171,23 +177,38 @@ Autres actions :
 
 ### 2.9 Sauvegarde complète et restauration
 
-**Sauvegarde complète** (menu) : fichier JSON `shopList-Backup-<aaMMjj>.json` (format version 2) contenant le titre de la liste, les paramètres, toutes les catégories (nom, ordre, couleur, repliée) et tous les produits (titre, catégorie, cochée, ordre, quantité). Les paramètres sauvegardés sont uniquement `titreListe` et `afficherFaites` (liste écrite en dur dans `construireJsonSauvegarde`).
+**Sauvegarde complète** (bouton de l'écran Options ; on reste sur Options) : fichier JSON `shopList-Backup-<aaMMjj>.json` (format version 2) contenant le titre de la liste, les paramètres, toutes les catégories (nom, ordre, couleur, repliée) et tous les produits (titre, catégorie, cochée, ordre, quantité). Les paramètres sauvegardés sont uniquement `titreListe`, `afficherFaites` et `positionBarre` (liste écrite en dur dans `construireJsonSauvegarde`).
 
-**Restaurer une sauvegarde** (menu), en trois temps :
+**Restaurer une sauvegarde** (bouton de l'écran Options), en trois temps :
 
 1. Avertissement : la restauration remplacera toutes les données, action irréversible.
 2. Après choix du fichier, résumé : titre de la liste, nombre de catégories et de produits, date de la sauvegarde. Confirmation par « Restaurer ».
 3. Remplacement complet des données dans une transaction. En cas de fichier invalide (JSON incorrect, version non supportée, champ manquant, catégorie en doublon, produit rattaché à une catégorie inconnue), un dialogue « Restauration impossible » affiche la raison.
 
-Les sauvegardes en version 1 (antérieures aux quantités) restent restaurables : les produits ont alors une quantité vide.
+Après une restauration réussie, l'application revient sur l'écran principal ; en cas d'erreur ou d'annulation, on reste sur Options.
+
+Les sauvegardes en version 1 (antérieures aux quantités) restent restaurables : les produits ont alors une quantité vide. Une sauvegarde sans paramètre `positionBarre` (antérieure au MODULE 07c) remet la barre en position « Haut ».
 
 ### 2.10 Divers
 
-* **Renommer la liste** (menu) : change le titre affiché.
+* **Renommer la liste** (écran Options, zone « Nom de la liste ») : change le titre affiché.
 * **Premier lancement** (base vide) : création d'une catégorie « Personnel » avec trois tâches d'exemple (héritage de la todo list d'origine).
 * Les messages de résultat (import, export, sauvegarde, restauration, erreur d'ajout ou de modification d'un produit) s'affichent en Toast ; les actions annulables en snackbar.
 * Application en **portrait uniquement**, **thème sombre unique**.
 * Application entièrement **locale** : aucun accès réseau.
+
+### 2.11 Options
+
+Écran « Options » (entrée « Options » du menu principal, en dernier). Barre du haut : flèche retour (vers l'écran principal) et titre « Options ». Contenu, de haut en bas :
+
+* **Nom de la liste** : libellé « Nom de la liste » puis le nom actuel (2 lignes maximum, points de suspension). Un toucher ouvre le dialogue « Renommer la liste » (champ prérempli, texte grisé « Nouveau titre », boutons « Valider » / « Annuler » ; valider un champ vide ne renomme pas).
+* **Position de la barre de titre et d'options** : deux boutons segmentés « Haut » / « Bas » (« Haut » par défaut). Le choix est enregistré immédiatement (paramètre `positionBarre`) et appliqué à la barre de l'écran principal (voir 2.1). Il ne concerne pas les barres des autres écrans.
+* Boutons pleine largeur, dans cet ordre :
+  * **Gérer les catégories** : ouvre l'écran « Gestion des catégories » (2.6), dont le retour ramène à Options ;
+  * **Importer une liste** (2.8) ;
+  * **Sauvegarde complète** (2.9) ;
+  * **Restaurer une sauvegarde** (2.9).
+* En bas de l'écran, centré : « shopList v2026.04 » (nom de version de l'application).
 
 ---
 
@@ -222,12 +243,13 @@ Architecture **MVVM simple, une seule activité**, sans couche Repository ni inj
 ```
 MainActivity (ShopListTheme + TodoApp)
  └─ TodoApp : Scaffold + SnackbarHost, collecte des StateFlow et des événements
-     └─ ShopListNavHost (3 routes)
+     └─ ShopListNavHost (4 routes)
          ├─ TodoListScreen      (route "liste", départ)
-         ├─ CategoriesScreen    (route "categories")
-         └─ PartagerScreen      (route "partager")
+         ├─ OptionsScreen       (route "options", depuis le menu de la liste)
+         ├─ CategoriesScreen    (route "categories", depuis Options)
+         └─ PartagerScreen      (route "partager", depuis le menu de la liste)
 
-TodoViewModel (AndroidViewModel, unique, partagé par les 3 écrans)
+TodoViewModel (AndroidViewModel, unique, partagé par les 4 écrans)
  └─ TacheDao / CategorieDao / ParametreDao
      └─ TodoDatabase (Room, singleton)
 ```
@@ -243,17 +265,19 @@ app/src/main/java/com/jb/shoplist/
 ├── Entities.kt                Entités Room
 ├── Daos.kt                    DAO Room
 ├── TodoDatabase.kt            Base Room (singleton) et migration 3 → 4
-├── TodoViewModel.kt           ViewModel unique, états, sauvegarde, CSV
-├── Formatage.kt               Fonctions pures : libellé avec quantité, découpage CSV, comparateur alphabétique
+├── TodoViewModel.kt           ViewModel unique, états, sauvegarde, CSV, enum PositionBarre
+├── Formatage.kt               Fonctions pures : libellé avec quantité, découpage CSV, comparateur alphabétique, état replié affiché
 └── ui/
     ├── navigation/
     │   ├── Routes.kt          Constantes de routes
     │   └── ShopListNavHost.kt NavHost et câblage écrans ↔ ViewModel
     ├── screens/
     │   ├── liste/
-    │   │   ├── TodoListScreen.kt   Écran principal, menu ⋮ des catégories, dialogues, fermeture de la recherche
-    │   │   ├── TodoListTopBar.kt   Barre du haut, recherche, menu
+    │   │   ├── TodoListScreen.kt   Écran principal, menu ⋮ des catégories, dialogues produit et catégorie, recherche, position de la barre
+    │   │   ├── TodoListTopBar.kt   Barre de titre et d'options (haut ou bas), recherche, menu
     │   │   └── LigneAffichee.kt    Modèle des lignes affichées (en-tête / produit)
+    │   ├── options/
+    │   │   └── OptionsScreen.kt    Écran Options : nom de la liste, position de la barre, catégories, import, sauvegarde, restauration, version
     │   ├── categories/
     │   │   └── CategoriesScreen.kt Gestion des catégories
     │   └── partage/
@@ -270,6 +294,7 @@ app/src/main/java/com/jb/shoplist/
 app/schemas/com.jb.shoplist.TodoDatabase/  Schémas Room exportés (3.json, 4.json)
 app/src/test/java/com/jb/shoplist/FormatageTest.kt               Tests unitaires de Formatage.kt
 app/src/androidTest/java/com/jb/shoplist/ProduitEditionDialogTest.kt  Tests Compose du dialogue (modes ajout et modification)
+app/src/androidTest/java/com/jb/shoplist/OptionsScreenTest.kt        Tests Compose de l'écran Options
 specs/                                                            Spécifications des modules (.md)
 ```
 
@@ -312,7 +337,7 @@ Remarques :
 
 * Le lien produit → catégorie se fait **par le nom** de la catégorie, sans clé étrangère. Renommer une catégorie = insérer la nouvelle, mettre à jour les produits, supprimer l'ancienne (en transaction).
 * `ordre` des produits : un ordre **global** (`ORDER BY ordre` sur toute la table) ; l'affichage regroupe ensuite par catégorie. Pour placer un produit en fin de catégorie (ajout, changement de catégorie), le code utilise `obtenirOrdreMaxParCategorie(categorie) + 1`.
-* Paramètres utilisés : `titreListe`, `afficherFaites`.
+* Paramètres utilisés : `titreListe`, `afficherFaites`, `positionBarre` (`"HAUT"` ou `"BAS"`, absent = `HAUT` ; ajouté au MODULE 07c sans migration, la table `parametres` étant clé / valeur).
 
 **DAO principaux** :
 
@@ -340,12 +365,16 @@ data class TodoUiState(
 * `pileCochages: StateFlow<List<ActionCochage>>` : pile d'annulation des cochages (`tacheId`, `etatPrecedent`), limitée à 10.
 * `etatRestauration: StateFlow<EtatRestauration>` : `Inactif`, `FichierLu(ContenuSauvegarde)`, `Erreur(message)`.
 * `evenements: SharedFlow<String>` : messages ponctuels affichés en Toast par `TodoApp`.
+* `positionBarre: StateFlow<PositionBarre>` : lu depuis le paramètre `positionBarre` (`map` puis `stateIn(SharingStarted.Eagerly, PositionBarre.HAUT)`, valeur inconnue ou absente = `HAUT`). Hors de `TodoUiState`. Collecté dans `ShopListNavHost`.
+* `operationReussie: SharedFlow<Unit>` : émis juste après le Toast « Importation réussie ! » (`importerDepuisCsv`) et après « Restauration réussie » (`confirmerRestauration`), jamais en cas d'erreur. Sert au retour vers la liste depuis Options.
 
-Principales fonctions publiques : `ajouterTache`, `basculerFait`, `annulerDernierCochage`, `modifierProduit`, `supprimerTache`, `reordonnerTaches`, `trierTachesParAlpha`, `toutCocher`, `ajouterCategorie`, `supprimerCategorie`, `reordonnerCategories`, `renommerCategorie`, `modifierCouleurCategorie`, `toggleCategorieRepliee`, `modifierTitreListe`, `setAfficherFaites`, `setTermeRecherche`, `importerDepuisCsv`, `exporterCsv`, `sauvegardeComplete`, `lireFichierSauvegarde`, `confirmerRestauration`, `annulerRestauration`, `consommerErreurRestauration`, `annulerDerniereAction`, `consommerAction`.
+`enum class PositionBarre { HAUT, BAS }` est déclarée dans `TodoViewModel.kt`, à côté de `EtatRestauration`.
+
+Principales fonctions publiques : `ajouterTache`, `basculerFait`, `annulerDernierCochage`, `modifierProduit`, `supprimerTache`, `reordonnerTaches`, `trierTachesParAlpha`, `toutCocher`, `ajouterCategorie`, `supprimerCategorie`, `reordonnerCategories`, `renommerCategorie`, `modifierCouleurCategorie`, `toggleCategorieRepliee`, `modifierTitreListe`, `setAfficherFaites`, `setPositionBarre`, `setTermeRecherche`, `importerDepuisCsv`, `exporterCsv`, `sauvegardeComplete`, `lireFichierSauvegarde`, `confirmerRestauration`, `annulerRestauration`, `consommerErreurRestauration`, `annulerDerniereAction`, `consommerAction`.
 
 * `ajouterTache(titre, categorie, quantite)` : nettoie titre et quantité, place le produit en fin de catégorie (`obtenirOrdreMaxParCategorie + 1`), l'insère non coché. Les erreurs sont capturées et signalées par `evenements` (« Erreur lors de l'ajout du produit : … »).
 * `modifierProduit(tache, nouveauTitre, nouvelleQuantite, nouvelleCategorie)` : nettoie titre et quantité, calcule le nouvel `ordre` via `obtenirOrdreMaxParCategorie` si la catégorie change, puis enregistre en un seul `mettreAJour`. Les erreurs sont capturées et signalées par `evenements`.
-* `construireJsonSauvegarde()` : parcourt une liste de clés écrite en dur (`listOf("titreListe", "afficherFaites")`) pour remplir le tableau `parametres` de la sauvegarde.
+* `construireJsonSauvegarde()` : parcourt une liste de clés écrite en dur (`listOf("titreListe", "afficherFaites", "positionBarre")`) pour remplir le tableau `parametres` de la sauvegarde.
 
 **Fonctions utilitaires** (`Formatage.kt`, testées par `FormatageTest`) :
 
@@ -353,15 +382,28 @@ Principales fonctions publiques : `ajouterTache`, `basculerFait`, `annulerDernie
 * `parserLigneCsv(ligne)` : découpe une ligne CSV séparée par `;` en respectant les guillemets (utilisée par l'import).
 * `comparateurAlphabetique()` : `Comparator<String>` basé sur `java.text.Collator.getInstance(Locale.FRENCH)` en force `Collator.TERTIARY` (nouvelle instance à chaque appel). Utilisé par `trierTachesParAlpha` via `sortedWith(compareBy(comparateurAlphabetique()) { it.titre })`.
 * `nomsProduitsIdentiques(a, b)` : vrai si `a.trim().lowercase() == b.trim().lowercase()` (accents comptés). Règle unique d'unicité des produits, utilisée par les dialogues produit, le glisser-déposer et l'import CSV.
+* `categorieReplieeAffichee(replieeEnBase, rechercheActive, aDesResultats, toucheeEnRecherche)` : état replié à afficher ; vaut `false` (déplié) si recherche active, catégorie avec résultats et non touchée pendant la recherche, sinon `replieeEnBase`. Utilisée par le calcul des lignes de `TodoListScreen`.
 
 ### 3.6 Interface
 
-* **Construction des lignes** : `TodoListScreen` calcule une `List<LigneAffichee>` (`Header` ou `ItemTache`, avec clé unique stable `"header_<nom>"` / `"tache_<id>"` ; `ItemTache` porte la couleur de la catégorie) à partir de l'état, en appliquant le filtre des cochés, la recherche et le repli des catégories. Le repli s'applique aussi en recherche (`if (!cat.repliee)` autour de l'ajout des `ItemTache`). Une seule `LazyColumn` affiche ces lignes.
+* **Construction des lignes** : `TodoListScreen` calcule une `List<LigneAffichee>` (`Header` ou `ItemTache`, avec clé unique stable `"header_<nom>"` / `"tache_<id>"` ; `ItemTache` porte la couleur de la catégorie) à partir de l'état, en appliquant le filtre des cochés, la recherche et le repli des catégories. Une seule `LazyColumn` affiche ces lignes.
+  * En recherche, `tachesFinales` ne retient que les produits dont `titre.sansAccents().lowercase()` contient le terme normalisé (le nom de catégorie n'est pas comparé).
+  * `LigneAffichee.Header(categorie, nombreNonCoches, replieeAffichee: Boolean = categorie.repliee)` : `replieeAffichee` est calculé par `categorieReplieeAffichee(...)` ; les `ItemTache` ne sont ajoutés que si `!replieeAffichee`. Le chevron et sa description suivent `replieeAffichee`.
 * **Recherche** : `modeRecherche` est un état local de `TodoListScreen` ; le terme passe par `TodoViewModel.setTermeRecherche`. La normalisation sans accents est faite par l'extension privée `String.sansAccents()` (`Normalizer`, forme NFD) en bas de `TodoListScreen.kt`.
-  * `quitterRecherche(cible: CibleDefilement? = null)` (fonction locale) retire le focus (`LocalFocusManager`), masque le clavier (`LocalSoftwareKeyboardController`), remet `modeRecherche = false`, efface le terme et mémorise la cible de défilement. Elle est utilisée par le `BackHandler`, la flèche retour (`onToggleSearchMode`), et, uniquement si `modeRecherche`, par le toucher d'un en-tête, les 5 actions du menu ⋮ et `onClickTache` (avant leur action habituelle). `onCheckedChange` de `TacheItem` n'est pas concerné.
+  * `categoriesToucheesEnRecherche: Set<String>` (état local, `remember`) : noms des catégories dont l'en-tête a été touché pendant la recherche en cours ; clé du `remember` de `lignes`, vidé par `quitterRecherche`.
+  * Toucher d'un en-tête : si recherche active (`modeRecherche` et terme non vide), appel de `onToggleCategorieRepliee` seulement si `ligne.replieeAffichee == ligne.categorie.repliee`, puis ajout du nom à `categoriesToucheesEnRecherche`, sans fermer la recherche ; sinon `quitterRecherche(CibleDefilement(...))` si `modeRecherche`, puis `onToggleCategorieRepliee`.
+  * `quitterRecherche(cible: CibleDefilement? = null)` (fonction locale) retire le focus (`LocalFocusManager`), masque le clavier (`LocalSoftwareKeyboardController`), remet `modeRecherche = false`, efface le terme, vide `categoriesToucheesEnRecherche` et mémorise la cible de défilement. Elle est utilisée par le `BackHandler`, la flèche retour (`onToggleSearchMode`), et, uniquement si `modeRecherche`, par le toucher d'un en-tête avec un terme vide, les 5 actions du menu ⋮ et `onClickTache` (avant leur action habituelle). `onCheckedChange` de `TacheItem` n'est pas concerné.
   * `private data class CibleDefilement(cle: String, cleRepli: String?)` : clé de la ligne à garder visible, avec repli sur l'en-tête de la catégorie pour un produit. Un `LaunchedEffect(lignes, cibleDefilement)` attend que le terme soit vide, cherche l'index de la clé (puis de la clé de repli), appelle `lazyListState.scrollToItem(index)` seulement si l'élément n'est pas entièrement visible, puis remet la cible à `null`.
   * Toucher sous la liste : en recherche seulement, la `LazyColumn` reçoit `Modifier.pointerInput(Unit) { detectTapGestures(onTap = …) }` ; si le dernier item visible est le dernier de la liste (séparateur final) et que le toucher est sous son bas (`offset + size`), `quitterRecherche()` est appelée sans cible. Les touchers consommés par les lignes et les défilements ne déclenchent rien.
   * `TodoListTopBar` n'affiche en recherche que la flèche retour, le champ et la croix d'effacement (plus de bouton œil).
+* **Position de la barre** : `TodoListScreen` reçoit `positionBarre: PositionBarre`. La barre est définie une fois (`val barre: @Composable () -> Unit = { TodoListTopBar(..., enBas = positionBarre == PositionBarre.BAS) }`) puis placée par `Scaffold(topBar = { if (HAUT) barre() }, bottomBar = { if (BAS) barre() })`. Sans `topBar`, le `innerPadding` contient la hauteur de la barre d'état.
+  * `TodoListTopBar(…, enBas: Boolean = false)` : seul effet de `enBas`, `windowInsets` de la `TopAppBar` = `WindowInsets.navigationBars.union(WindowInsets.ime)` en bas, `TopAppBarDefaults.windowInsets` en haut.
+  * Menu hamburger de `TodoListTopBar` : trois `DropdownMenuItem` sans icône (« Partager la liste », « Tout cocher », « Options »).
+* **Écran Options** (`OptionsScreen`) : composable sans état métier.
+  * Signature : `OptionsScreen(titreListe, versionApp, onModifierTitreListe, onOuvrirCategories, positionBarre, onChangerPositionBarre, onImporterCsv, onSauvegardeComplete, etatRestauration, onLireFichierSauvegarde, onConfirmerRestauration, onAnnulerRestauration, onConsommerErreurRestauration, onRetour)`.
+  * `Scaffold` + `TopAppBar` (`surfaceVariant`), `Column` : zone cliquable du nom, `SingleChoiceSegmentedButtonRow` (deux `SegmentedButton`), quatre `OutlinedButton`, `Spacer(weight(1f))`, texte de version.
+  * États locaux : `afficherDialogRenommer`, `afficherDialogImport`, `afficherDialogPreRestauration`. Contient les trois lanceurs SAF (import, sauvegarde, restauration) et les dialogues « Renommer la liste » (`SaisieDialog`), « Import CSV », « Restaurer une sauvegarde », « Confirmer la restauration », « Restauration impossible » (piloté par `etatRestauration`). L'import, la sauvegarde et la restauration n'existent plus dans `TodoListScreen`.
+  * Navigation (`ShopListNavHost`) : `versionApp = BuildConfig.VERSION_NAME`, `onOuvrirCategories = navigate(Routes.CATEGORIES)`, `onRetour = popBackStack()` ; un `LaunchedEffect(Unit)` collecte `viewModel.operationReussie` et appelle `navController.popBackStack(Routes.LISTE, inclusive = false)`.
 * **Ligne produit** (`TacheItem`) : un seul `Text` construit avec un `AnnotatedString` (nom, puis si non coché et quantité non vide : espace demi-cadratin ` ` et quantité en `SpanStyle(fontSize = 12.sp, color = couleur de la catégorie)`, espaces internes rendus insécables). La couleur de catégorie arrive par le paramètre `couleurCase`.
 * **Dialogue produit** (`ProduitEditionDialog`) : un seul composant pour l'ajout et la modification.
   * Signature : `ProduitEditionDialog(tache: TacheEntity?, categories, categorieInitiale: String = tache?.categorie ?: "", onCheckErreurTitre(titre, categorie), onValider(titre, quantite, categorie), onSupprimer: () -> Unit = {}, onFermer)`.
@@ -373,7 +415,7 @@ Principales fonctions publiques : `ajouterTache`, `basculerFait`, `annulerDernie
 * **Glisser-déposer** : bibliothèque Reorderable (`rememberReorderableLazyListState`, `ReorderableItem`, `longPressDraggableHandle`). Déposer un produit sur un en-tête ou un produit d'une autre catégorie change sa catégorie ; la liste complète est réordonnée puis enregistrée à chaque pas du glisser.
   * Contrôle des doublons au lâcher : `longPressDraggableHandle(onDragStarted = …, onDragStopped = …)` ; au démarrage, `TodoListScreen` mémorise dans des états locaux `idTacheGlissee`, `categorieOrigineGlissement`, `categorieFinaleGlissement` (mise à jour à chaque pas) et `tachesAvantGlissement` (copie de `uiState.taches`). Au lâcher, `verifierDoublonApresGlissement()` restaure la copie via `onReordonnerTaches` si la catégorie finale contient un homonyme, affiche le Toast (directement depuis l'écran, via `LocalContext`, pas via `evenements`), puis remet les états à `null`.
   * `ReorderableItem` est appelé avec `animateItemModifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)` : l'animation de placement est conservée, les fondus sont supprimés car le fondu d'apparition pouvait rester bloqué en recherche (produit filtré affiché comme un espace vide).
-* **Dialogues** : `SaisieDialog` est le dialogue générique (titre, champ unique, placeholder, validation avec message d'erreur, actions supplémentaires comme Supprimer), utilisé pour l'ajout et le renommage de catégorie et le renommage de la liste. Il ne sert plus pour les produits. Les confirmations utilisent `AlertDialog`.
+* **Dialogues** : `SaisieDialog` est le dialogue générique (titre, champ unique, placeholder, validation avec message d'erreur, actions supplémentaires comme Supprimer), utilisé pour l'ajout et le renommage de catégorie et le renommage de la liste (depuis Options). Il ne sert plus pour les produits. Les confirmations utilisent `AlertDialog`.
 * **Fichiers** : Storage Access Framework via `rememberLauncherForActivityResult` (`OpenDocument`, `CreateDocument`), aucune permission de stockage.
 * **Thème** : `ShopListTheme`, thème sombre unique (fond `#2A3135`, texte blanc). Couleurs personnalisées exposées par `CompositionLocal` : `ShopListTheme.customColors.tacheNonFaite` et `.tacheFaite` (gris `#787D7F`).
 
@@ -385,13 +427,13 @@ Principales fonctions publiques : `ajouterTache`, `basculerFait`, `annulerDernie
   "exportDate": "2026-11-09T18:30:00",
   "appVersion": "2026.04",
   "titreListe": "Courses",
-  "parametres": [ { "cle": "afficherFaites", "valeur": "true" } ],
+  "parametres": [ { "cle": "afficherFaites", "valeur": "true" }, { "cle": "positionBarre", "valeur": "BAS" } ],
   "categories": [ { "nom": "Frais", "ordre": 0, "couleur": 4294967295, "repliee": false } ],
   "taches":     [ { "titre": "Lait", "categorie": "Frais", "faite": false, "ordre": 0, "quantite": "1 L" } ]
 }
 ```
 
-À la restauration, les versions 1 et 2 sont acceptées (version 1 ou champ absent : `quantite = ""`) ; toute autre version est refusée. Les `id` des produits sont régénérés par Room.
+À la restauration, les versions 1 et 2 sont acceptées (version 1 ou champ absent : `quantite = ""`) ; toute autre version est refusée. Tous les paramètres présents dans le fichier sont restaurés (la table `parametres` est vidée avant) : un paramètre absent du fichier reprend sa valeur par défaut. Les `id` des produits sont régénérés par Room.
 
 ### 3.8 Limites connues et dette technique
 
@@ -401,16 +443,22 @@ Principales fonctions publiques : `ajouterTache`, `basculerFait`, `annulerDernie
 * **Documentation des migrations** : `specs/MIGRATIONS.md` indique de placer les migrations dans un fichier `Migrations.kt`, qui n'existe pas ; l'usage réel (et la règle à suivre) est `TodoDatabase.kt`.
 * **Nouveaux paramètres** : un nouveau paramètre stocké dans la table `parametres` n'est sauvegardé que s'il est ajouté à la liste de clés de `construireJsonSauvegarde`.
 * **Sauvegarde automatique Android** : `android:allowBackup="true"` avec les fichiers `backup_rules.xml` et `data_extraction_rules.xml` laissés à l'état de modèle (aucune règle active). La sauvegarde cloud Android peut donc inclure la base Room et la restaurer lors d'une réinstallation.
-* **Import CSV** : le nom de catégorie est comparé exactement (« frais » et « Frais » donnent deux catégories) ; le texte d'aide du dialogue d'import ne mentionne pas la colonne quantité.
+* **Import CSV** : le nom de catégorie est comparé exactement (« frais » et « Frais » donnent deux catégories) ; le texte d'aide du dialogue d'import (dans `OptionsScreen`) ne mentionne pas la colonne quantité.
+* **Snackbar en double** : la même `SnackbarHostState` est affichée par le `SnackbarHost` du `Scaffold` de `TodoApp` et par celui de `TodoListScreen` (et de `CategoriesScreen`). Invisible en position « Haut » (superposition exacte), visible en position « Bas ». Correction spécifiée dans le MODULE 07d (non implémenté à cette date).
+* **Position « Bas »** : au lancement, la barre peut apparaître en haut une fraction de seconde avant la lecture du paramètre ; la liste n'est pas calée en bas quand elle est plus courte que l'écran (prévu au MODULE 07d).
 * `TacheDao.trouverParTitreEtCategorie` n'est plus utilisée depuis le MODULE 04 (conservée).
 * **Pas de clé étrangère** entre produits et catégories (cohérence assurée par le code).
-* **ViewModel unique** volumineux (environ 760 lignes) : états, CSV et sauvegarde y sont regroupés. `TodoListScreen` grossit aussi (environ 690 lignes : menu ⋮, dialogues de catégorie, gestion de la recherche).
-* `modeRecherche` est un `remember` simple : la recherche ouverte n'est pas conservée si l'écran est recréé ou si l'on navigue vers un autre écran puis revient.
-* **Recherche et repli** : une catégorie repliée masque ses produits même quand ils correspondent à la recherche (voir 2.5).
+* **ViewModel unique** volumineux (environ 780 lignes) : états, CSV et sauvegarde y sont regroupés. `TodoListScreen` fait environ 565 lignes (menu ⋮, dialogues produit et catégorie, recherche) depuis le déplacement de l'import et de la restauration vers `OptionsScreen` (environ 290 lignes).
+* `modeRecherche` et `categoriesToucheesEnRecherche` sont des `remember` simples : la recherche ouverte n'est pas conservée si l'écran est recréé ou si l'on navigue vers un autre écran puis revient.
+* **Recherche, champ vide** : toucher un en-tête ferme la recherche quand le champ est vide (comportement hérité du MODULE 05) ; correction prévue au MODULE 07d.
 * **Doublon fonctionnel** : la gestion des catégories existe à la fois dans le menu ⋮ des en-têtes et dans l'écran « Gestion des catégories », avec une petite différence (confirmation de suppression toujours demandée depuis le menu ⋮, seulement pour une catégorie non vide depuis l'écran dédié).
 * **Libellés** mêlant « tâche », « élément » et « produit » (« Ajout d'élément », « Tâche supprimée », « N tâche(s) »…).
 * **Données d'exemple** du premier lancement héritées de la todo list.
-* **Tests** : `FormatageTest` (unitaires : libellé avec quantité, découpage CSV, comparateur alphabétique, `nomsProduitsIdentiques`) et `ProduitEditionDialogTest` (Compose, modes ajout et modification, contrôle d'erreur selon la catégorie sélectionnée, à lancer avec `./gradlew connectedAndroidTest`, appareil branché). La fermeture automatique de la recherche n'a pas de test automatisé.
+* **Tests** :
+  * `FormatageTest` (unitaires : libellé avec quantité, découpage CSV, comparateur alphabétique, `nomsProduitsIdentiques`, `categorieReplieeAffichee`) ;
+  * `ProduitEditionDialogTest` (Compose, modes ajout et modification, contrôle d'erreur selon la catégorie sélectionnée) ;
+  * `OptionsScreenTest` (Compose : affichage du nom, de la version, des boutons et de l'option de position, sélection Haut / Bas, renommage, ouverture des dialogues d'import et de restauration, dialogue d'erreur de restauration) ;
+  * tests Compose à lancer avec `./gradlew connectedAndroidTest`, appareil branché. La recherche (fermeture automatique, dépliage automatique), la position de la barre et le retour à la liste après import ou restauration n'ont pas de test automatisé.
 * `StatusBarColor` défini via une API dépréciée dans `Theme.kt`.
 
 ---

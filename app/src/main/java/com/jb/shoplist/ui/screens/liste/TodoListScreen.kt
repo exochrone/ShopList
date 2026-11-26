@@ -259,7 +259,7 @@ fun TodoListScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
                 .then(
-                    if (modeRecherche) Modifier.pointerInput(Unit) {
+                    if (modeRecherche && positionBarre == PositionBarre.HAUT) Modifier.pointerInput(Unit) {
                         detectTapGestures(onTap = { position ->
                             val info = lazyListState.layoutInfo
                             val dernier = info.visibleItemsInfo.lastOrNull()
@@ -272,7 +272,7 @@ fun TodoListScreen(
                         })
                     } else Modifier
                 ),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
+            verticalArrangement = if (positionBarre == PositionBarre.BAS) Arrangement.Bottom else Arrangement.spacedBy(0.dp)
         ) {
             items(
                 count = lignes.size,
@@ -299,7 +299,6 @@ fun TodoListScreen(
                                             }
                                             categoriesToucheesEnRecherche = categoriesToucheesEnRecherche + ligne.categorie.nom
                                         } else {
-                                            if (modeRecherche) quitterRecherche(CibleDefilement(ligne.cleUnique, null))
                                             onToggleCategorieRepliee(ligne.categorie)
                                         }
                                     }
@@ -352,7 +351,7 @@ fun TodoListScreen(
                                             enabled = false
                                         )
                                         DropdownMenuItem(
-                                            text = { Text("Ajout d'élément") },
+                                            text = { Text("Ajouter un produit") },
                                             leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                                             onClick = {
                                                 menuOuvertPourCategorie = null
@@ -380,7 +379,7 @@ fun TodoListScreen(
                                         )
                                         DropdownMenuItem(
                                             text = { Text("Choix de la couleur") },
-                                            leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
+                                            leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = Color(ligne.categorie.couleur)) },
                                             onClick = {
                                                 menuOuvertPourCategorie = null
                                                 if (modeRecherche) quitterRecherche(CibleDefilement(ligne.cleUnique, null))
