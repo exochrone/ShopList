@@ -7,13 +7,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import android.net.Uri
 import com.jb.shoplist.ActionCochage
+import com.jb.shoplist.BuildConfig
 import com.jb.shoplist.EtatRestauration
 import com.jb.shoplist.TodoUiState
 import com.jb.shoplist.TodoViewModel
 import com.jb.shoplist.ui.screens.categories.CategoriesScreen
 import com.jb.shoplist.ui.screens.liste.TodoListScreen
+import com.jb.shoplist.ui.screens.options.OptionsScreen
 import com.jb.shoplist.ui.screens.partage.PartagerScreen
 
 @Composable
@@ -45,6 +46,7 @@ fun ShopListNavHost(
                 onToggleCategorieRepliee = viewModel::toggleCategorieRepliee,
                 onOuvrirCategories = { navController.navigate(Routes.CATEGORIES) },
                 onOuvrirPartage = { navController.navigate(Routes.PARTAGER) },
+                onOuvrirOptions = { navController.navigate(Routes.OPTIONS) },
                 onImporterCsv = viewModel::importerDepuisCsv,
                 onToutCocher = viewModel::toutCocher,
                 onBasculerAfficherFaites = viewModel::setAfficherFaites,
@@ -82,6 +84,15 @@ fun ShopListNavHost(
                 taches = uiState.taches,
                 titreListe = uiState.titreListe,
                 onExporterCsv = viewModel::exporterCsv,
+                onRetour = { navController.popBackStack() }
+            )
+        }
+        composable(Routes.OPTIONS) {
+            OptionsScreen(
+                titreListe = uiState.titreListe,
+                versionApp = BuildConfig.VERSION_NAME,
+                onModifierTitreListe = viewModel::modifierTitreListe,
+                onOuvrirCategories = { navController.navigate(Routes.CATEGORIES) },
                 onRetour = { navController.popBackStack() }
             )
         }

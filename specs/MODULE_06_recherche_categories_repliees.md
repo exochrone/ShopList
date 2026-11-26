@@ -7,7 +7,9 @@ OBJECTIF
 
 Aujourd'hui, en recherche, une catégorie repliée qui contient des produits correspondant à la recherche n'affiche que son en-tête : les produits trouvés sont invisibles.
 
-Ce module introduit deux règles :
+Ce module introduit trois règles :
+
+0. **Recherche sur le nom des produits uniquement** : le terme n'est plus comparé au nom de la catégorie. Une catégorie n'apparaît pendant une recherche que si elle contient au moins un produit dont le nom correspond au terme.
 
 1. **Dépliage automatique (affichage seulement)** : pendant une recherche, une catégorie qui contient au moins un produit correspondant à la recherche s'affiche **dépliée**, même si elle est repliée en base. Ce dépliage n'est **jamais écrit en base**. Dès qu'elle ne contient plus de résultat (le terme change), ou à la sortie de la recherche, elle reprend son **état initial**, c'est-à-dire son état `repliee` en base.
 2. **Toucher de l'utilisateur = synchronisation avec la base** : quand l'utilisateur touche l'en-tête d'une catégorie, l'état affiché est inversé **et** enregistré en base, de sorte que l'affichage et la base soient de nouveau identiques. En recherche, ce toucher **ne ferme pas la recherche**.
@@ -21,11 +23,13 @@ Exemple :
 
 Ce que le module ne fait pas :
 
-* il ne modifie pas le filtre de recherche (accents, casse, nom du produit ou de la catégorie) ;
+* il ne modifie pas le reste du filtre de recherche : comparaison sans accents ni casse, produits cochés toujours inclus, quantité non prise en compte ;
 * il ne modifie pas le fait qu'une catégorie sans résultat n'est pas affichée pendant une recherche ;
 * il ne modifie pas l'affichage ni le toucher des en-têtes hors recherche ;
 * il ne modifie ni le modèle Room, ni la sauvegarde JSON, ni l'import/export CSV, ni le partage ;
 * il ne touche pas au menu ⋮ des catégories, ni au glisser-déposer (déjà désactivé en recherche).
+
+**Changement d'une règle de la recherche existante** : jusqu'ici, un produit était retenu si son nom **ou le nom de sa catégorie** contenait le terme (rechercher « frais » affichait tous les produits de la catégorie « Frais »). Avec ce module, seul le nom du produit est comparé.
 
 **Changement d'une règle du MODULE 05** : jusqu'ici, en recherche, toucher un en-tête de catégorie fermait la recherche puis repliait ou dépliait la catégorie. Avec ce module, pendant une recherche active (terme non vide), toucher un en-tête **ne ferme plus la recherche**. Les autres fermetures automatiques du MODULE 05 et du MODULE 05b sont inchangées.
 
@@ -57,6 +61,12 @@ Navigation : aucune modification.
 ==========================
 COMPORTEMENT
 ==========================
+
+0. **Filtre de recherche**
+
+   * Un produit est un **résultat** si son nom (`TacheEntity.titre`), sans accents et en minuscules, contient le terme nettoyé (`trim`, sans accents, minuscules). Le nom de la catégorie n'est pas comparé.
+   * Une catégorie est affichée pendant une recherche active seulement si elle a au moins un résultat ; elle n'affiche que ses résultats.
+   * Inchangé : produits cochés toujours inclus, quantité non prise en compte, un produit présent dans plusieurs catégories apparaît sous chacune d'elles.
 
 Définitions :
 
@@ -111,6 +121,7 @@ Définitions :
 RÈGLES MÉTIER
 ==========================
 
+* La recherche ne compare que le nom des produits, jamais le nom des catégories.
 * Seul un toucher de l'utilisateur sur un en-tête peut modifier `repliee` en base ; le dépliage automatique ne le modifie jamais.
 * Après un toucher, l'état affiché et l'état en base de la catégorie sont identiques.
 * Le dépliage automatique ne s'applique qu'en recherche active, aux catégories qui ont au moins un résultat et qui n'ont pas été touchées pendant la recherche en cours.
@@ -176,7 +187,15 @@ fun categorieReplieeAffichee(
 
      ```kotlin
      val rechercheActive = recherche.isNotEmpty()
-     // ... calcul existant de tachesFinales inchangé ...
+     // ... calcul existant de tachesFiltreesParFait inchangé ...
+     val tachesFinales = if (recherche.isEmpty()) {
+         tachesFiltreesParFait
+     } else {
+         // Seul le nom du produit est comparé (plus le nom de la catégorie)
+         tachesDeLaCat.filter { tache ->
+             tache.titre.sansAccents().lowercase().contains(recherche)
+         }
+     }
      if (tachesFinales.isNotEmpty() || (recherche.isEmpty() && uiState.afficherFaites)) {
          val replieeAffichee = categorieReplieeAffichee(
              replieeEnBase = cat.repliee,
@@ -231,7 +250,7 @@ COMPOSANTS UI
 CAS LIMITES
 ==========================
 
-* Catégorie trouvée par son nom (le terme correspond au nom de catégorie) : tous ses produits sont des résultats, elle est dépliée automatiquement avec tous ses produits (cochés compris, comme toute recherche).
+* Terme égal au nom d'une catégorie (« frais ») : la catégorie « Frais » n'apparaît que si l'un de ses produits contient « frais » dans son nom (par exemple « Fromage frais »), et seuls ces produits sont affichés. Si aucun nom de produit ne contient le terme, aucun résultat.
 * Plusieurs catégories repliées avec résultats : chacune est dépliée automatiquement et peut être touchée indépendamment.
 * Toucher rapide deux fois de suite sur une catégorie dépliée automatiquement : 1er toucher sans écriture (affichage replié), 2e toucher avec écriture (`repliee = false`). La décision du 2e toucher repose sur `ligne.replieeAffichee` et `ligne.categorie.repliee` de la ligne recomposée ; aucune écriture n'est faite tant que l'affichage et la base diffèrent.
 * Sortie de la recherche par toucher d'un produit d'une catégorie dépliée automatiquement et non touchée : la recherche se ferme, le dialogue « Modifier le produit » s'ouvre, la catégorie redevient repliée, la liste défile vers son en-tête (clé de repli déjà gérée par `CibleDefilement`).
@@ -261,12 +280,15 @@ Tests manuels :
 5. Rechercher « pain », toucher deux fois l'en-tête : repliée, puis dépliée. Quitter la recherche : elle est dépliée ; fermer et rouvrir l'application : toujours dépliée.
 6. Catégorie dépliée en base, rechercher un de ses produits, toucher son en-tête : elle se replie, la recherche reste ouverte. Quitter la recherche : elle est repliée.
 7. Ouvrir la recherche sans rien saisir, toucher un en-tête : la recherche se ferme et la catégorie bascule (inchangé).
+8. Rechercher le nom d'une catégorie qu'aucun nom de produit ne contient (par exemple « boulangerie ») : aucun résultat.
+9. Rechercher « pain » avec « Boulangerie » contenant « Pain » et « Croissant » : « Boulangerie » apparaît avec « Pain » seulement.
 
 ==========================
 CRITÈRES D'ACCEPTATION
 ==========================
 
 * compile, aucun nouveau warning, aucun crash ;
+* la recherche ne compare que le nom des produits ; une catégorie n'apparaît que si elle contient au moins un résultat ;
 * en recherche active, les produits trouvés d'une catégorie repliée sont visibles, sans écriture en base ;
 * une catégorie dépliée automatiquement reprend son état en base dès qu'elle n'a plus de résultat et à la sortie de la recherche ;
 * un toucher d'en-tête en recherche active inverse l'affichage, aligne la base dessus et ne ferme pas la recherche ;
@@ -279,7 +301,7 @@ TRAVAIL ATTENDU DE GEMINI
 
 1. Ajouter `categorieReplieeAffichee` dans `Formatage.kt` et ses tests dans `FormatageTest.kt`. Compiler et lancer les tests unitaires.
 2. Ajouter le champ `replieeAffichee` à `LigneAffichee.Header`. Compiler.
-3. Modifier `TodoListScreen.kt` (état local, `quitterRecherche`, calcul de `lignes`, chevron, `clickable` de l'en-tête). Compiler.
+3. Modifier `TodoListScreen.kt` (filtre de recherche sur le nom du produit seulement, état local, `quitterRecherche`, calcul de `lignes`, chevron, `clickable` de l'en-tête). Compiler.
 
 Créer uniquement les classes nécessaires (aucune classe nouvelle n'est attendue).
 

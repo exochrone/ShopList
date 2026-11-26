@@ -30,6 +30,7 @@ fun TodoListTopBar(
     onAnnulerCochage: () -> Unit,
     onOuvrirCategories: () -> Unit,
     onOuvrirPartage: () -> Unit,
+    onOuvrirOptions: () -> Unit,
     onOuvrirImport: () -> Unit,
     onRenommerListe: () -> Unit,
     onToutCocher: () -> Unit,
@@ -178,6 +179,13 @@ fun TodoListTopBar(
                             onClick = {
                                 afficherMenu = false
                                 onToutCocher()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Options") },
+                            onClick = {
+                                afficherMenu = false
+                                onOuvrirOptions()
                             }
                         )
                     }

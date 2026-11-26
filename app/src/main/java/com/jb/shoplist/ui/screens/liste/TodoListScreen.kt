@@ -61,6 +61,7 @@ fun TodoListScreen(
     onToggleCategorieRepliee: (CategorieEntity) -> Unit,
     onOuvrirCategories: () -> Unit,
     onOuvrirPartage: () -> Unit,
+    onOuvrirOptions: () -> Unit,
     onImporterCsv: (android.net.Uri) -> Unit,
     onToutCocher: () -> Unit,
     onBasculerAfficherFaites: (Boolean) -> Unit,
@@ -268,6 +269,7 @@ fun TodoListScreen(
                 onAnnulerCochage = onAnnulerDernierCochage,
                 onOuvrirCategories = onOuvrirCategories,
                 onOuvrirPartage = onOuvrirPartage,
+                onOuvrirOptions = onOuvrirOptions,
                 onOuvrirImport = { afficherDialogImport = true },
                 onRenommerListe = {
                     afficherDialogRenommer = true
