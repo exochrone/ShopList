@@ -5,8 +5,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -15,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,6 +32,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Suppress("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun TodoApp() {
     val viewModel: TodoViewModel = viewModel()
@@ -67,15 +65,14 @@ fun TodoApp() {
     }
 
     Scaffold { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
-            ShopListNavHost(
-                navController = navController,
-                uiState = uiState,
-                viewModel = viewModel,
-                snackbarHostState = snackbarHostState,
-                pileCochages = pileCochages,
-                etatRestauration = etatRestauration
-            )
-        }
+        // On pourrait passer innerPadding à ShopListNavHost si besoin de gérer les insets
+        ShopListNavHost(
+            navController = navController,
+            uiState = uiState,
+            viewModel = viewModel,
+            snackbarHostState = snackbarHostState,
+            pileCochages = pileCochages,
+            etatRestauration = etatRestauration
+        )
     }
 }
